@@ -747,6 +747,9 @@ namespace OStimNavigator {
                 ImGuiMCP::ImVec2 displaySize = ImGuiMCP::ImGui::GetIO()->DisplaySize;
                 ImGuiMCP::ImGui::SetNextWindowSize(ImGuiMCP::ImVec2(displaySize.x * 0.7f, displaySize.y * 0.75f), ImGuiMCP::ImGuiCond_FirstUseEver);
 
+                // Set solid, non-transparent background
+                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_WindowBg, ImGuiMCP::ImVec4(0.10f, 0.10f, 0.12f, 1.0f));
+
                 std::string windowTitle = "Thread Explorer";
                 if (ImGuiMCP::ImGui::Begin(windowTitle.c_str(), &s_isShown, ImGuiMCP::ImGuiWindowFlags_None)) {
                     auto& ostim = OStimIntegration::GetSingleton();
@@ -756,6 +759,7 @@ namespace OStimNavigator {
                     if (!ostim.IsOStimAvailable()) {
                         ImGuiMCP::ImGui::TextColored(s_orangeTextColor, "OStim not available");
                         ImGuiMCP::ImGui::End();
+                        ImGuiMCP::ImGui::PopStyleColor();
                         return;
                     }
 
@@ -763,6 +767,7 @@ namespace OStimNavigator {
                     if (!threadInterface) {
                         ImGuiMCP::ImGui::TextColored(s_redTextColor, "Error: ThreadInterface not available");
                         ImGuiMCP::ImGui::End();
+                        ImGuiMCP::ImGui::PopStyleColor();
                         return;
                     }
 
@@ -773,6 +778,7 @@ namespace OStimNavigator {
                             s_isShown = false;
                         }
                         ImGuiMCP::ImGui::End();
+                        ImGuiMCP::ImGui::PopStyleColor();
                         return;
                     }
                     
@@ -1285,6 +1291,7 @@ namespace OStimNavigator {
                     }
                 }
                 ImGuiMCP::ImGui::End();
+                ImGuiMCP::ImGui::PopStyleColor();
             }
         }
     }
