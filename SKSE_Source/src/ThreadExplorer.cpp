@@ -38,7 +38,7 @@ namespace OStimNavigator {
             static std::vector<SceneData*> s_filteredScenes;
             static std::unordered_map<SceneData*, float> s_similarityScores;  // Cache for similarity scores
             static int s_currentPage = 0;
-            static int s_itemsPerPage = 25;
+            static int s_itemsPerPage = 50;
             
             // Compatibility filters
             static bool s_hideTransitions = true;
@@ -56,30 +56,31 @@ namespace OStimNavigator {
             static bool s_filtersNeedReapply = false;
             
             // Color palette for tag/action pills (extensible via hashing)
+            // DARKENED colors for good contrast with white text on dark backgrounds
             static const ImGuiMCP::ImVec4 s_colorPalette[] = {
-                ImGuiMCP::ImVec4(0.60f, 0.40f, 0.85f, 1.0f),  // Purple
-                ImGuiMCP::ImVec4(0.30f, 0.60f, 0.95f, 1.0f),  // Blue
-                ImGuiMCP::ImVec4(0.20f, 0.75f, 0.70f, 1.0f),  // Cyan
-                ImGuiMCP::ImVec4(0.35f, 0.80f, 0.40f, 1.0f),  // Green
-                ImGuiMCP::ImVec4(0.95f, 0.75f, 0.20f, 1.0f),  // Yellow
-                ImGuiMCP::ImVec4(0.95f, 0.55f, 0.25f, 1.0f),  // Orange
-                ImGuiMCP::ImVec4(0.90f, 0.35f, 0.35f, 1.0f),  // Red
-                ImGuiMCP::ImVec4(0.95f, 0.45f, 0.70f, 1.0f),  // Pink
-                ImGuiMCP::ImVec4(0.85f, 0.35f, 0.85f, 1.0f),  // Magenta
-                ImGuiMCP::ImVec4(0.45f, 0.70f, 0.95f, 1.0f),  // Light Blue
-                ImGuiMCP::ImVec4(0.65f, 0.85f, 0.45f, 1.0f),  // Lime
-                ImGuiMCP::ImVec4(0.95f, 0.65f, 0.45f, 1.0f),  // Peach
-                ImGuiMCP::ImVec4(0.70f, 0.50f, 0.95f, 1.0f),  // Lavender
-                ImGuiMCP::ImVec4(0.40f, 0.85f, 0.85f, 1.0f),  // Turquoise
-                ImGuiMCP::ImVec4(0.95f, 0.85f, 0.45f, 1.0f),  // Gold
-                ImGuiMCP::ImVec4(0.85f, 0.45f, 0.55f, 1.0f),  // Rose
-                ImGuiMCP::ImVec4(0.50f, 0.65f, 0.85f, 1.0f),  // Steel Blue
-                ImGuiMCP::ImVec4(0.75f, 0.65f, 0.40f, 1.0f),  // Tan
-                ImGuiMCP::ImVec4(0.55f, 0.85f, 0.65f, 1.0f),  // Mint
-                ImGuiMCP::ImVec4(0.85f, 0.55f, 0.85f, 1.0f),  // Orchid
+                ImGuiMCP::ImVec4(0.45f, 0.25f, 0.60f, 1.0f),  // Purple - darkened
+                ImGuiMCP::ImVec4(0.20f, 0.40f, 0.70f, 1.0f),  // Blue - darkened
+                ImGuiMCP::ImVec4(0.15f, 0.50f, 0.50f, 1.0f),  // Cyan - darkened
+                ImGuiMCP::ImVec4(0.25f, 0.55f, 0.30f, 1.0f),  // Green - darkened
+                ImGuiMCP::ImVec4(0.70f, 0.55f, 0.10f, 1.0f),  // Yellow - darkened
+                ImGuiMCP::ImVec4(0.70f, 0.40f, 0.15f, 1.0f),  // Orange - darkened
+                ImGuiMCP::ImVec4(0.65f, 0.20f, 0.20f, 1.0f),  // Red - darkened
+                ImGuiMCP::ImVec4(0.70f, 0.30f, 0.50f, 1.0f),  // Pink - darkened
+                ImGuiMCP::ImVec4(0.60f, 0.20f, 0.60f, 1.0f),  // Magenta - darkened
+                ImGuiMCP::ImVec4(0.30f, 0.50f, 0.70f, 1.0f),  // Light Blue - darkened
+                ImGuiMCP::ImVec4(0.45f, 0.60f, 0.30f, 1.0f),  // Lime - darkened
+                ImGuiMCP::ImVec4(0.70f, 0.45f, 0.30f, 1.0f),  // Peach - darkened
+                ImGuiMCP::ImVec4(0.50f, 0.35f, 0.70f, 1.0f),  // Lavender - darkened
+                ImGuiMCP::ImVec4(0.25f, 0.60f, 0.60f, 1.0f),  // Turquoise - darkened
+                ImGuiMCP::ImVec4(0.70f, 0.60f, 0.25f, 1.0f),  // Gold - darkened
+                ImGuiMCP::ImVec4(0.60f, 0.30f, 0.35f, 1.0f),  // Rose - darkened
+                ImGuiMCP::ImVec4(0.35f, 0.45f, 0.60f, 1.0f),  // Steel Blue - darkened
+                ImGuiMCP::ImVec4(0.55f, 0.45f, 0.25f, 1.0f),  // Tan - darkened
+                ImGuiMCP::ImVec4(0.35f, 0.60f, 0.45f, 1.0f),  // Mint - darkened
+                ImGuiMCP::ImVec4(0.60f, 0.35f, 0.60f, 1.0f),  // Orchid - darkened
             };
             static const int s_colorPaletteSize = sizeof(s_colorPalette) / sizeof(s_colorPalette[0]);
-            static const ImGuiMCP::ImVec4 s_grayPillColor = ImGuiMCP::ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
+            static const ImGuiMCP::ImVec4 s_grayPillColor = ImGuiMCP::ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
             
             // UI color constants
             static const ImGuiMCP::ImVec4 s_greenButtonColor = ImGuiMCP::ImVec4(0.36f, 0.72f, 0.36f, 1.0f);
@@ -636,10 +637,12 @@ namespace OStimNavigator {
                 std::string preview = BuildPreviewText(selectedItems, "None");
                 
                 ImGuiMCP::ImGui::SetNextItemWidth(-100.0f);
+                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_PopupBg, ImGuiMCP::ImVec4(0.12f, 0.12f, 0.14f, 1.0f));
                 if (ImGuiMCP::ImGui::BeginCombo(comboId, preview.c_str())) {
                     RenderSearchableItemList(allItems, selectedItems, searchBuffer, bufferSize, searchId, searchHint, scrollId, 200.0f, onChangeCallback);
                     ImGuiMCP::ImGui::EndCombo();
                 }
+                ImGuiMCP::ImGui::PopStyleColor();
                 
                 ImGuiMCP::ImGui::Spacing();
             }
@@ -680,12 +683,14 @@ namespace OStimNavigator {
                 ImGuiMCP::ImGui::Text("Per Page:");
                 ImGuiMCP::ImGui::SameLine();
                 ImGuiMCP::ImGui::SetNextItemWidth(80.0f);
+                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_PopupBg, ImGuiMCP::ImVec4(0.12f, 0.12f, 0.14f, 1.0f));
                 if (ImGuiMCP::ImGui::BeginCombo("##perpage", std::to_string(itemsPerPage).c_str())) {
                     if (ImGuiMCP::ImGui::Selectable("25", itemsPerPage == 25)) itemsPerPage = 25;
                     if (ImGuiMCP::ImGui::Selectable("50", itemsPerPage == 50)) itemsPerPage = 50;
                     if (ImGuiMCP::ImGui::Selectable("100", itemsPerPage == 100)) itemsPerPage = 100;
                     ImGuiMCP::ImGui::EndCombo();
                 }
+                ImGuiMCP::ImGui::PopStyleColor();
                 
                 ImGuiMCP::ImGui::Spacing();
             }
@@ -792,15 +797,6 @@ namespace OStimNavigator {
                     }
 
                     // ========== CURRENT THREAD ==========
-                    // Add subtle background color for the Current Thread section
-                    ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_ChildBg, ImGuiMCP::ImVec4(0.15f, 0.18f, 0.22f, 1.0f));
-                    ImGuiMCP::ImGui::BeginChild("##current_thread_bg", ImGuiMCP::ImVec2(0, 0), true, ImGuiMCP::ImGuiWindowFlags_AlwaysAutoResize);
-                    ImGuiMCP::ImGui::PopStyleColor();
-                    
-                    // Add padding
-                    ImGuiMCP::ImGui::Spacing();
-                    ImGuiMCP::ImGui::Spacing();
-                    
                     // Make header larger
                     ImGuiMCP::ImGui::SetWindowFontScale(1.2f);
                     if (ImGuiMCP::ImGui::CollapsingHeader("Current Thread", ImGuiMCP::ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -977,12 +973,6 @@ namespace OStimNavigator {
                         ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
                     }
                     
-                    // Add padding at the end
-                    ImGuiMCP::ImGui::Spacing();
-                    ImGuiMCP::ImGui::Spacing();
-                    
-                    ImGuiMCP::ImGui::EndChild();
-
                     ImGuiMCP::ImGui::Separator();
 
                     // ========== FILTERS ==========
@@ -1020,6 +1010,7 @@ namespace OStimNavigator {
                         std::string modpackPreview = BuildPreviewText(s_selectedModpacks, "All");
                         
                         ImGuiMCP::ImGui::SetNextItemWidth(-10.0f);
+                        ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_PopupBg, ImGuiMCP::ImVec4(0.12f, 0.12f, 0.14f, 1.0f));
                         if (ImGuiMCP::ImGui::BeginCombo("##modpack_combo", modpackPreview.c_str())) {
                             if (sceneDB.IsLoaded()) {
                                 std::unordered_set<std::string> allModpacks;
@@ -1048,6 +1039,7 @@ namespace OStimNavigator {
                             }
                             ImGuiMCP::ImGui::EndCombo();
                         }
+                        ImGuiMCP::ImGui::PopStyleColor();
                         
                         ImGuiMCP::ImGui::Columns(1);
                         
