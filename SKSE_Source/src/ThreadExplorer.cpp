@@ -976,27 +976,25 @@ namespace OStimNavigator {
                     if (ImGuiMCP::ImGui::CollapsingHeader("Filters", ImGuiMCP::ImGuiTreeNodeFlags_DefaultOpen)) {
                         ImGuiMCP::ImGui::Indent();
                         
-                        // Search by Name/File
+                        // Row 1: Search | Modpack (2-column layout)
+                        ImGuiMCP::ImGui::Columns(2, "##filter_row1", false);
+                        
+                        // Left Column: Search
                         ImGuiMCP::ImGui::AlignTextToFramePadding();
                         ImGuiMCP::ImGui::Text("Search:");
-                        ImGuiMCP::ImGui::SameLine();
-                        ImGuiMCP::ImGui::SetNextItemWidth(-100.0f);
+                        ImGuiMCP::ImGui::SetNextItemWidth(-10.0f);
                         if (ImGuiMCP::ImGui::InputTextWithHint("##search", "Scene name or ID...", s_searchBuffer, sizeof(s_searchBuffer))) {
                             ApplyFilters(thread);
                         }
                         
-                        ImGuiMCP::ImGui::Spacing();
-                        ImGuiMCP::ImGui::Separator();
-                        ImGuiMCP::ImGui::Spacing();
-                        
-                        // Modpack Filter (multi-select dropdown)
+                        // Right Column: Modpack
+                        ImGuiMCP::ImGui::NextColumn();
                         ImGuiMCP::ImGui::AlignTextToFramePadding();
                         ImGuiMCP::ImGui::Text("Modpack:");
-                        ImGuiMCP::ImGui::SameLine();
                         
                         std::string modpackPreview = BuildPreviewText(s_selectedModpacks, "All");
                         
-                        ImGuiMCP::ImGui::SetNextItemWidth(-100.0f);
+                        ImGuiMCP::ImGui::SetNextItemWidth(-10.0f);
                         if (ImGuiMCP::ImGui::BeginCombo("##modpack_combo", modpackPreview.c_str())) {
                             if (sceneDB.IsLoaded()) {
                                 std::unordered_set<std::string> allModpacks;
@@ -1026,6 +1024,10 @@ namespace OStimNavigator {
                             ImGuiMCP::ImGui::EndCombo();
                         }
                         
+                        ImGuiMCP::ImGui::Columns(1);
+                        
+                        ImGuiMCP::ImGui::Spacing();
+                        ImGuiMCP::ImGui::Separator();
                         ImGuiMCP::ImGui::Spacing();
                         
                         // Scene Tags, Actor Tags, Actions, and Action Tags filters
@@ -1034,11 +1036,18 @@ namespace OStimNavigator {
                             static char actorTagSearchBuffer[128] = "";
                             static char actionSearchBuffer[128] = "";
                             
+                            // Row 2: Scene Tags | Actor Tags (2-column layout)
+                            ImGuiMCP::ImGui::Columns(2, "##filter_row2", false);
+                            
+                            // Left Column: Scene Tags
                             RenderFilterCombo("Scene Tags:", s_sceneTagsAND,
                                 "AND: Scene must have ALL selected tags", "OR: Scene must have ANY selected tag",
                                 s_selectedSceneTags, sceneDB.GetAllTags(), tagSearchBuffer, sizeof(tagSearchBuffer),
                                 "##scene_tags_combo", "##tag_search", "Search tags...", "##scene_tags_scroll",
                                 [&thread]() { ApplyFilters(thread); });
+                            
+                            // Right Column: Actor Tags
+                            ImGuiMCP::ImGui::NextColumn();
                             
                             RenderFilterCombo("Actor Tags:", s_actorTagsAND,
                                 "AND: At least one actor must have ALL selected tags", "OR: At least one actor must have ANY selected tag",
@@ -1046,22 +1055,32 @@ namespace OStimNavigator {
                                 "##actor_tags_combo", "##actor_tag_search", "Search tags...", "##actor_tags_scroll",
                                 [&thread]() { ApplyFilters(thread); });
                             
+                            ImGuiMCP::ImGui::Columns(1);
+                            
+                            // Row 3: Actions | Action Tags (2-column layout)
+                            ImGuiMCP::ImGui::Columns(2, "##filter_row3", false);
+                            
+                            // Left Column: Actions
                             RenderFilterCombo("Actions:", s_actionsAND,
                                 "AND: Scene must have ALL selected actions", "OR: Scene must have ANY selected action",
                                 s_selectedActions, sceneDB.GetAllActions(), actionSearchBuffer, sizeof(actionSearchBuffer),
                                 "##actions_combo", "##action_search", "Search actions...", "##actions_scroll",
                                 [&thread]() { ApplyFilters(thread); });
-                        }
-                        
-                        // Action Tags Filter
-                        if (actionDB.IsLoaded()) {
-                            static char actionTagSearchBuffer[128] = "";
                             
-                            RenderFilterCombo("Action Tags:", s_actionTagsAND,
-                                "AND: Scene actions must have ALL selected tags", "OR: Scene actions must have ANY selected tag",
-                                s_selectedActionTags, actionDB.GetAllTags(), actionTagSearchBuffer, sizeof(actionTagSearchBuffer),
-                                "##action_tags_combo", "##action_tag_search", "Search action tags...", "##action_tags_scroll",
-                                [&thread]() { ApplyFilters(thread); });
+                            // Right Column: Action Tags
+                            ImGuiMCP::ImGui::NextColumn();
+                            
+                            if (actionDB.IsLoaded()) {
+                                static char actionTagSearchBuffer[128] = "";
+                                
+                                RenderFilterCombo("Action Tags:", s_actionTagsAND,
+                                    "AND: Scene actions must have ALL selected tags", "OR: Scene actions must have ANY selected tag",
+                                    s_selectedActionTags, actionDB.GetAllTags(), actionTagSearchBuffer, sizeof(actionTagSearchBuffer),
+                                    "##action_tags_combo", "##action_tag_search", "Search action tags...", "##action_tags_scroll",
+                                    [&thread]() { ApplyFilters(thread); });
+                            }
+                            
+                            ImGuiMCP::ImGui::Columns(1);
                         }
                         
                         ImGuiMCP::ImGui::Spacing();
