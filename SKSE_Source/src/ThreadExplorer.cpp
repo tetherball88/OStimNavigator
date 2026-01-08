@@ -779,7 +779,19 @@ namespace OStimNavigator {
                     }
 
                     // ========== CURRENT THREAD ==========
+                    // Add subtle background color for the Current Thread section
+                    ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_ChildBg, ImGuiMCP::ImVec4(0.15f, 0.18f, 0.22f, 1.0f));
+                    ImGuiMCP::ImGui::BeginChild("##current_thread_bg", ImGuiMCP::ImVec2(0, 0), true, ImGuiMCP::ImGuiWindowFlags_AlwaysAutoResize);
+                    ImGuiMCP::ImGui::PopStyleColor();
+                    
+                    // Add padding
+                    ImGuiMCP::ImGui::Spacing();
+                    ImGuiMCP::ImGui::Spacing();
+                    
+                    // Make header larger
+                    ImGuiMCP::ImGui::SetWindowFontScale(1.2f);
                     if (ImGuiMCP::ImGui::CollapsingHeader("Current Thread", ImGuiMCP::ImGuiTreeNodeFlags_DefaultOpen)) {
+                        ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
                         ImGuiMCP::ImGui::Indent();
                         
                         uint32_t actorCount = thread->getActorCount();
@@ -948,7 +960,15 @@ namespace OStimNavigator {
                         ImGuiMCP::ImGui::Text("%s", furnitureStr.c_str());
                         
                         ImGuiMCP::ImGui::Unindent();
+                    } else {
+                        ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
                     }
+                    
+                    // Add padding at the end
+                    ImGuiMCP::ImGui::Spacing();
+                    ImGuiMCP::ImGui::Spacing();
+                    
+                    ImGuiMCP::ImGui::EndChild();
 
                     ImGuiMCP::ImGui::Separator();
 
