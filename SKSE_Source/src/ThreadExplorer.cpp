@@ -616,7 +616,14 @@ namespace OStimNavigator {
                                          const char* comboId, const char* searchId, const char* searchHint, const char* scrollId,
                                          std::function<void()> onChangeCallback = nullptr) {
                 ImGuiMCP::ImGui::AlignTextToFramePadding();
-                ImGuiMCP::ImGui::Text("%s", label);
+                
+                // Highlight label if filter is active
+                bool hasActiveFilter = !selectedItems.empty();
+                if (hasActiveFilter) {
+                    ImGuiMCP::ImGui::TextColored(s_blueTextColor, "%s (%zu)", label, selectedItems.size());
+                } else {
+                    ImGuiMCP::ImGui::Text("%s", label);
+                }
                 ImGuiMCP::ImGui::SameLine();
                 
                 if (RenderAndOrToggle(andMode, comboId, andTooltip, orTooltip)) {
@@ -981,7 +988,13 @@ namespace OStimNavigator {
                         
                         // Left Column: Search
                         ImGuiMCP::ImGui::AlignTextToFramePadding();
-                        ImGuiMCP::ImGui::Text("Search:");
+                        // Highlight Search label if there's text in the search buffer
+                        bool hasSearchText = s_searchBuffer[0] != '\0';
+                        if (hasSearchText) {
+                            ImGuiMCP::ImGui::TextColored(s_blueTextColor, "Search:");
+                        } else {
+                            ImGuiMCP::ImGui::Text("Search:");
+                        }
                         ImGuiMCP::ImGui::SetNextItemWidth(-10.0f);
                         if (ImGuiMCP::ImGui::InputTextWithHint("##search", "Scene name or ID...", s_searchBuffer, sizeof(s_searchBuffer))) {
                             ApplyFilters(thread);
@@ -990,7 +1003,13 @@ namespace OStimNavigator {
                         // Right Column: Modpack
                         ImGuiMCP::ImGui::NextColumn();
                         ImGuiMCP::ImGui::AlignTextToFramePadding();
-                        ImGuiMCP::ImGui::Text("Modpack:");
+                        // Highlight Modpack label if filters are active
+                        bool hasModpackFilter = !s_selectedModpacks.empty();
+                        if (hasModpackFilter) {
+                            ImGuiMCP::ImGui::TextColored(s_blueTextColor, "Modpack: (%zu)", s_selectedModpacks.size());
+                        } else {
+                            ImGuiMCP::ImGui::Text("Modpack:");
+                        }
                         
                         std::string modpackPreview = BuildPreviewText(s_selectedModpacks, "All");
                         
