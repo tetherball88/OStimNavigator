@@ -1,10 +1,8 @@
 # OStim Navigator
 
-A powerful SKSE plugin for Skyrim Special Edition that provides an advanced in-game interface for browsing, filtering, and navigating OStim NG scenes in real-time.
+A powerful SKSE plugin for **Skyrim** that provides an advanced in-game interface for browsing, filtering, and navigating **OStim NG** scenes in real-time.
 
-## Features
-
-### Active Threads Monitor
+## Active Threads Monitor
 - **Live Thread Tracking**: View all active OStim threads with automatic refresh
 - **Thread Information Display**:
   - Thread ID and player thread indicator
@@ -12,10 +10,10 @@ A powerful SKSE plugin for Skyrim Special Edition that provides an advanced in-g
   - Current scene/animation
   - Quick access to thread explorer
 
-### Advanced Scene Explorer
+## Advanced Scene Explorer
 Navigate and filter thousands of OStim scenes with a comprehensive set of tools:
 
-#### Scene Browser
+### Scene Browser
 - **Sortable Table View**: Browse scenes with columns for:
   - Similarity score (compared to current scene)
   - Scene ID and display name
@@ -27,7 +25,7 @@ Navigate and filter thousands of OStim scenes with a comprehensive set of tools:
 - **One-Click Navigation**: Warp to any scene instantly with the "Warp" button
 - **Pagination**: Navigate through large scene lists efficiently
 
-#### Current Thread Stats
+### Current Thread Stats
 Real-time information about the selected thread:
 - Thread type classification (sexual/sensual/none)
 - Gender composition with color-coded icons
@@ -37,14 +35,14 @@ Real-time information about the selected thread:
 - Participating actors with their tags
 - Furniture type detection
 
-#### Smart Similarity Scoring
+### Smart Similarity Scoring
 Automatically calculates and displays similarity scores between the current scene and all available scenes based on:
 - Shared actions
 - Matching scene tags
 - Common actor tags
 - Visual color-coded indicators (green = high, yellow = medium, orange = low)
 
-#### Powerful Filtering System
+### Powerful Filtering System
 
 **Search**
 - Real-time text search across scene IDs and names
@@ -80,7 +78,7 @@ Automatically filter scenes based on thread compatibility:
 - **Hide Non-Random Scenes**: Exclude scenes not suitable for auto mode
 - **Hide Intro/Idle Scenes**: Remove starting animations and idle poses
 
-#### Interactive Features
+### Interactive Features
 - **Clickable Pills**: Click any tag or action pill in the Current Thread section to instantly add it as a filter
 - **Automatic Re-filtering**: Scene list updates automatically when clicking pills or changing filters
 - **Similarity Auto-Update**: Similarity scores recalculate automatically when the scene changes (via warp or natural progression)
@@ -91,8 +89,8 @@ Automatically filter scenes based on thread compatibility:
 
 - **Skyrim Special Edition**
 - **SKSE64** (Skyrim Script Extender)
-- **OStim NG** (OStim Next Generation)
-- **SKSEMenuFramework** (for in-game UI)
+- [**OStim Standalone - Advanced Adult Animation Framework**](https://www.nexusmods.com/skyrimspecialedition/mods/98163)
+- [**SKSE Menu Framework**](https://www.nexusmods.com/skyrimspecialedition/mods/120352)
 
 ## Installation
 
@@ -103,13 +101,14 @@ Automatically filter scenes based on thread compatibility:
 
 ## Usage
 
-1. **Open the Menu**: Access via SKSEMenuFramework menu (default key configured in SKSEMenuFramework)
+1. **Open the Menu**: Access via SKSE Menu Framework menu (default key configured in SKSE Menu Framework, by default **F1**)
 2. **Navigate to "OStim Navigator" → "Active Threads"**
 3. **View Active Threads**: See all currently running OStim animations
 4. **Click "Explore"**: Opens the Scene Explorer for that thread
 5. **Use Filters**: Apply tags, actions, or search to find specific scenes
 6. **Click Pills**: Click any tag/action in the thread stats to add it as a filter
-7. **Warp to Scene**: Click the "Warp" button on any scene to navigate immediately
+7. **Warp to Scene**: Click the `Warp` button on any scene to navigate immediately
+    - **Known Issue** - If your SKSE Menu Configured to pause game, when you warp not all actors gets undressed by OStim. **Solution**: In SKSE Menu Framework settings(click on dropdown in top left corner) select to not pause game. SKSE Menu uses weird pause mechanic and it doesn't fully pause game only slows down time, which makes OStim to visually stop playing animations but all other OStim functionality works: excitment bars filling, sounds playing, etc...
 
 ### Tips
 
@@ -140,18 +139,3 @@ Calculates scene similarity using weighted factors:
 - Automatic refresh intervals for thread monitoring
 - Optimized rendering with pagination
 
-## Credits
-
-Built with:
-- CommonLibSSE-NG
-- SKSEMenuFramework
-- OStim NG API
-- nlohmann/json
-
-## License
-
-[Add your license here]
-
-## Support
-
-For issues, questions, or feature requests, please [create an issue on GitHub/Nexus].
