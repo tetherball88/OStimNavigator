@@ -1106,7 +1106,7 @@ namespace OStimNavigator {
                         ImGuiMCP::ImGui::Separator();
                         ImGuiMCP::ImGui::Spacing();
                         
-                        // Reset button
+                        // Reset button and Results on their own line for prominence
                         if (ImGuiMCP::ImGui::Button("Reset All", ImGuiMCP::ImVec2(120, 0))) {
                             s_searchBuffer[0] = '\0';
                             s_selectedModpacks.clear();
@@ -1117,10 +1117,12 @@ namespace OStimNavigator {
                             ApplyFilters(thread);
                         }
                         
-                        ImGuiMCP::ImGui::SameLine();
                         ImGuiMCP::ImGui::Spacing();
-                        ImGuiMCP::ImGui::SameLine();
-                        ImGuiMCP::ImGui::TextColored(s_blueTextColor, "Results: %zu scenes", s_filteredScenes.size());
+                        
+                        // Make results count more prominent with larger font and brighter color
+                        ImGuiMCP::ImGui::SetWindowFontScale(1.3f);
+                        ImGuiMCP::ImGui::TextColored(ImGuiMCP::ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "Results: %zu scenes", s_filteredScenes.size());
+                        ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
                         
                         ImGuiMCP::ImGui::Unindent();
                     }
