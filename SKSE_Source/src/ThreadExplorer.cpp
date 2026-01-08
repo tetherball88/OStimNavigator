@@ -478,7 +478,10 @@ namespace OStimNavigator {
                     float similarity = s_similarityScores[scene];
                     ImGuiMCP::ImVec4 color = GetSimilarityColor(similarity);
                     
+                    // Increase font size for similarity percentage
+                    ImGuiMCP::ImGui::SetWindowFontScale(1.3f);
                     ImGuiMCP::ImGui::TextColored(color, "%.1f%%", similarity * 100.0f);
+                    ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
                     
                     if (ImGuiMCP::ImGui::IsItemHovered()) {
                         ImGuiMCP::ImGui::SetTooltip("Similarity to current scene: %.1f%%", similarity * 100.0f);
@@ -514,11 +517,15 @@ namespace OStimNavigator {
                 
                 // File Name
                 ImGuiMCP::ImGui::TableSetColumnIndex(2);
+                ImGuiMCP::ImGui::SetWindowFontScale(1.15f);
                 RenderTableTextColumn(scene->id.c_str());
+                ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
                 
                 // Name
                 ImGuiMCP::ImGui::TableSetColumnIndex(3);
+                ImGuiMCP::ImGui::SetWindowFontScale(1.15f);
                 RenderTableTextColumn(scene->name.c_str());
+                ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
                 
                 // Gender
                 ImGuiMCP::ImGui::TableSetColumnIndex(4);
