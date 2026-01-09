@@ -39,6 +39,9 @@ namespace OStimNavigator {
         // Returns true if compatible (handles bed edge case: bed furniture allows scenes with no furniture)
         bool IsSceneCompatible(const std::unordered_set<std::string>& threadFurnitureTypes, const std::string& sceneFurniture);
         
+        // Get all furniture type IDs
+        std::vector<std::string> GetAllFurnitureTypeIDs() const;
+
         // Stats
         size_t GetFurnitureTypeCount() const { return m_furnitureTypes.size(); }
         bool IsLoaded() const { return m_loaded; }

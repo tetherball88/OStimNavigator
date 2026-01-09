@@ -1,6 +1,7 @@
 #include "UI.h"
 #include "ThreadExplorer.h"
 #include "OStimIntegration.h"
+#include "OStimNetIntegration.h"
 #include <SKSEMenuFramework.h>
 
 namespace OStimNavigator {
@@ -173,6 +174,11 @@ namespace OStimNavigator {
 
             SKSEMenuFramework::SetSection("OStim Navigator");
             SKSEMenuFramework::AddSectionItem("Active Threads", ActiveThreads::Render);
+
+            // Only add OStimNet page if the plugin is available
+            if (OStimNetIntegration::IsOStimNetAvailable()) {
+                SKSEMenuFramework::AddSectionItem("OStimNet", OStimNetIntegration::Render);
+            }
         }
     }
 }

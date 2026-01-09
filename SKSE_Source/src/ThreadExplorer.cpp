@@ -7,6 +7,7 @@
 #include "SceneSimilarity.h"
 #include "SceneFilter.h"
 #include "StringUtils.h"
+#include "SceneUIHelpers.h"
 #include <SKSEMenuFramework.h>
 #include <algorithm>
 
@@ -54,41 +55,6 @@ namespace OStimNavigator {
             
             // Flag to defer filter application until after table rendering
             static bool s_filtersNeedReapply = false;
-            
-            // Color palette for tag/action pills (extensible via hashing)
-            // DARKENED colors for good contrast with white text on dark backgrounds
-            static const ImGuiMCP::ImVec4 s_colorPalette[] = {
-                ImGuiMCP::ImVec4(0.45f, 0.25f, 0.60f, 1.0f),  // Purple - darkened
-                ImGuiMCP::ImVec4(0.20f, 0.40f, 0.70f, 1.0f),  // Blue - darkened
-                ImGuiMCP::ImVec4(0.15f, 0.50f, 0.50f, 1.0f),  // Cyan - darkened
-                ImGuiMCP::ImVec4(0.25f, 0.55f, 0.30f, 1.0f),  // Green - darkened
-                ImGuiMCP::ImVec4(0.70f, 0.55f, 0.10f, 1.0f),  // Yellow - darkened
-                ImGuiMCP::ImVec4(0.70f, 0.40f, 0.15f, 1.0f),  // Orange - darkened
-                ImGuiMCP::ImVec4(0.65f, 0.20f, 0.20f, 1.0f),  // Red - darkened
-                ImGuiMCP::ImVec4(0.70f, 0.30f, 0.50f, 1.0f),  // Pink - darkened
-                ImGuiMCP::ImVec4(0.60f, 0.20f, 0.60f, 1.0f),  // Magenta - darkened
-                ImGuiMCP::ImVec4(0.30f, 0.50f, 0.70f, 1.0f),  // Light Blue - darkened
-                ImGuiMCP::ImVec4(0.45f, 0.60f, 0.30f, 1.0f),  // Lime - darkened
-                ImGuiMCP::ImVec4(0.70f, 0.45f, 0.30f, 1.0f),  // Peach - darkened
-                ImGuiMCP::ImVec4(0.50f, 0.35f, 0.70f, 1.0f),  // Lavender - darkened
-                ImGuiMCP::ImVec4(0.25f, 0.60f, 0.60f, 1.0f),  // Turquoise - darkened
-                ImGuiMCP::ImVec4(0.70f, 0.60f, 0.25f, 1.0f),  // Gold - darkened
-                ImGuiMCP::ImVec4(0.60f, 0.30f, 0.35f, 1.0f),  // Rose - darkened
-                ImGuiMCP::ImVec4(0.35f, 0.45f, 0.60f, 1.0f),  // Steel Blue - darkened
-                ImGuiMCP::ImVec4(0.55f, 0.45f, 0.25f, 1.0f),  // Tan - darkened
-                ImGuiMCP::ImVec4(0.35f, 0.60f, 0.45f, 1.0f),  // Mint - darkened
-                ImGuiMCP::ImVec4(0.60f, 0.35f, 0.60f, 1.0f),  // Orchid - darkened
-            };
-            static const int s_colorPaletteSize = sizeof(s_colorPalette) / sizeof(s_colorPalette[0]);
-            static const ImGuiMCP::ImVec4 s_grayPillColor = ImGuiMCP::ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
-            
-            // UI color constants
-            static const ImGuiMCP::ImVec4 s_greenButtonColor = ImGuiMCP::ImVec4(0.36f, 0.72f, 0.36f, 1.0f);
-            static const ImGuiMCP::ImVec4 s_blueButtonColor = ImGuiMCP::ImVec4(0.29f, 0.62f, 1.0f, 1.0f);
-            static const ImGuiMCP::ImVec4 s_blueTextColor = ImGuiMCP::ImVec4(0.29f, 0.62f, 1.0f, 1.0f);
-            static const ImGuiMCP::ImVec4 s_grayTextColor = ImGuiMCP::ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
-            static const ImGuiMCP::ImVec4 s_orangeTextColor = ImGuiMCP::ImVec4(1.0f, 0.5f, 0.0f, 1.0f);
-            static const ImGuiMCP::ImVec4 s_redTextColor = ImGuiMCP::ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 
             void Show(int32_t threadID) {
                 bool threadChanged = (s_selectedThreadID != threadID);
@@ -123,85 +89,6 @@ namespace OStimNavigator {
             bool IsShown() {
                 return s_isShown;
             }
-            
-            // Hash a string to get a consistent color from the palette
-            static ImGuiMCP::ImVec4 GetColorForTag(const std::string& tag, bool isHighlighted) {
-                if (!isHighlighted) {
-                    return s_grayPillColor;
-                }
-                
-                // Simple hash function for consistent color assignment
-                std::hash<std::string> hasher;
-                size_t hash = hasher(tag);
-                int colorIndex = hash % s_colorPaletteSize;
-                return s_colorPalette[colorIndex];
-            }
-            
-            // Render a pill-shaped badge with text (using colored button)
-            static bool RenderPill(const char* text, const ImGuiMCP::ImVec4& color, bool isSelected = false) {
-                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_Button, color);
-                
-                // Darker shade for hover
-                ImGuiMCP::ImVec4 hoverColor = ImGuiMCP::ImVec4(
-                    color.x * 0.8f, color.y * 0.8f, color.z * 0.8f, color.w
-                );
-                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_ButtonHovered, hoverColor);
-                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_ButtonActive, hoverColor);
-                
-                // Add thicker, more prominent border for selected items
-                if (isSelected) {
-                    ImGuiMCP::ImGui::PushStyleVar(ImGuiMCP::ImGuiStyleVar_FrameBorderSize, 2.5f);
-                    ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_Border, ImGuiMCP::ImVec4(1.0f, 0.85f, 0.0f, 1.0f));  // Gold border
-                }
-                
-                bool clicked = ImGuiMCP::ImGui::SmallButton(text);
-                
-                if (isSelected) {
-                    ImGuiMCP::ImGui::PopStyleColor();  // Border color
-                    ImGuiMCP::ImGui::PopStyleVar();     // Border size
-                }
-                
-                ImGuiMCP::ImGui::PopStyleColor(3);
-                
-                return clicked;
-            }
-
-            // Build preview text for multi-select combo boxes
-            static std::string BuildPreviewText(const std::unordered_set<std::string>& selectedItems, const char* emptyText, int maxDisplay = 3) {
-                if (selectedItems.empty()) {
-                    return emptyText;
-                }
-                
-                std::string preview;
-                int count = 0;
-                for (const auto& item : selectedItems) {
-                    if (count > 0) preview += ", ";
-                    preview += item;
-                    count++;
-                    if (count >= maxDisplay) {
-                        preview += "...";
-                        break;
-                    }
-                }
-                return preview;
-            }
-
-            // Render OR/AND toggle button for filters
-            static bool RenderAndOrToggle(bool& andMode, const char* id, const char* andTooltip, const char* orTooltip) {
-                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_Button, andMode ? s_greenButtonColor : s_blueButtonColor);
-                std::string label = andMode ? "AND##" : "OR##";
-                label += id;
-                bool clicked = false;
-                if (ImGuiMCP::ImGui::SmallButton(label.c_str())) {
-                    andMode = !andMode;
-                    clicked = true;
-                }
-                ImGuiMCP::ImGui::PopStyleColor();
-                if (ImGuiMCP::ImGui::IsItemHovered()) {
-                    ImGuiMCP::ImGui::SetTooltip(andMode ? andTooltip : orTooltip);
-                }
-                return clicked;
-            }
 
             // Helper to get similarity color based on score
             static ImGuiMCP::ImVec4 GetSimilarityColor(float similarity) {
@@ -216,263 +103,8 @@ namespace OStimNavigator {
                 }
             }
 
-            // Helper to render table column with text and tooltip
-            static void RenderTableTextColumn(const char* text) {
-                ImGuiMCP::ImGui::TextUnformatted(text);
-                if (ImGuiMCP::ImGui::IsItemHovered()) {
-                    ImGuiMCP::ImGui::SetTooltip("%s", text);
-                }
-            }
-            
-            // Helper to render gender composition icons
-            static void RenderGenderComposition(const std::vector<ActorData>& actors) {
-                if (actors.empty()) return;
-                
-                // Collect and sort actors by gender (males first, then females, then others)
-                std::vector<std::string> genderList;
-                for (const auto& actor : actors) {
-                    std::string intendedSex = actor.intendedSex;
-                    StringUtils::ToLower(intendedSex);
-                    genderList.push_back(intendedSex);
-                }
-                
-                // Sort: males first, females second, others last
-                std::sort(genderList.begin(), genderList.end(), [](const std::string& a, const std::string& b) {
-                    int priorityA = (a == "male") ? 0 : (a == "female") ? 1 : 2;
-                    int priorityB = (b == "male") ? 0 : (b == "female") ? 1 : 2;
-                    return priorityA < priorityB;
-                });
-                
-                // Display gender icons
-                FontAwesome::PushSolid();
-                for (const auto& gender : genderList) {
-                    if (gender == "male") {
-                        ImGuiMCP::ImGui::TextColored(ImGuiMCP::ImVec4(0.4f, 0.6f, 1.0f, 1.0f), "%s", FontAwesome::UnicodeToUtf8(0xf222).c_str());
-                    } else if (gender == "female") {
-                        ImGuiMCP::ImGui::TextColored(ImGuiMCP::ImVec4(1.0f, 0.45f, 0.7f, 1.0f), "%s", FontAwesome::UnicodeToUtf8(0xf221).c_str());
-                    } else {
-                        ImGuiMCP::ImGui::TextColored(ImGuiMCP::ImVec4(0.75f, 0.55f, 1.0f, 1.0f), "%s", FontAwesome::UnicodeToUtf8(0xf224).c_str());
-                    }
-                    if (&gender != &genderList.back()) {
-                        ImGuiMCP::ImGui::SameLine();
-                    }
-                }
-                FontAwesome::Pop();
-            }
-
             // Forward declaration
             static void ApplyFilters(OStim::Thread* thread);
-
-            // Helper to render a collection of items as pills
-            template<typename Container, typename Accessor>
-            static void RenderPillCollection(const Container& items, 
-                                            const std::unordered_set<std::string>& highlightSet,
-                                            Accessor accessor,
-                                            std::unordered_set<std::string>* filterSet = nullptr,
-                                            std::function<void(const typename Container::value_type&)> customTooltipRenderer = nullptr,
-                                            bool checkTruncation = false,
-                                            std::function<void()> onChangeCallback = nullptr) {
-                // Store cursor position to create an invisible button for tooltip
-                ImGuiMCP::ImVec2 cursorPos;
-                ImGuiMCP::ImGui::GetCursorScreenPos(&cursorPos);
-                ImGuiMCP::ImVec2 cellMin = cursorPos;
-                
-                // Convert to vector and sort with priority: selected > highlighted > alphabetical
-                std::vector<typename Container::value_type> sortedItems(items.begin(), items.end());
-                std::sort(sortedItems.begin(), sortedItems.end(), [&](const auto& a, const auto& b) {
-                    const std::string& tagA = accessor(a);
-                    const std::string& tagB = accessor(b);
-                    
-                    bool isSelectedA = filterSet && filterSet->count(tagA) > 0;
-                    bool isSelectedB = filterSet && filterSet->count(tagB) > 0;
-                    bool isHighlightedA = highlightSet.count(tagA) > 0;
-                    bool isHighlightedB = highlightSet.count(tagB) > 0;
-                    
-                    // Priority 1: Selected in filter
-                    if (isSelectedA != isSelectedB) {
-                        return isSelectedA;
-                    }
-                    
-                    // Priority 2: Highlighted (matches current scene)
-                    if (isHighlightedA != isHighlightedB) {
-                        return isHighlightedA;
-                    }
-                    
-                    // Priority 3: Alphabetical
-                    return tagA < tagB;
-                });
-                
-                // Track truncation if needed
-                bool anyTruncated = false;
-                float currentX = 0.0f;
-                ImGuiMCP::ImVec2 availRegion = ImGuiMCP::ImVec2(0, 0);
-                if (checkTruncation) {
-                    ImGuiMCP::ImGui::GetContentRegionAvail(&availRegion);
-                }
-                
-                // Track which item is being hovered (for custom tooltips)
-                const typename Container::value_type* hoveredItem = nullptr;
-                
-                size_t count = 0;
-                for (const auto& item : sortedItems) {
-                    const std::string& tag = accessor(item);
-                    bool isHighlighted = highlightSet.count(tag) > 0;
-                    bool isSelected = filterSet && filterSet->count(tag) > 0;
-                    ImGuiMCP::ImVec4 color = GetColorForTag(tag, isHighlighted);
-                    
-                    // Push unique ID for this pill to avoid conflicts when same tag appears in multiple rows
-                    ImGuiMCP::ImGui::PushID((int)count);
-                    
-                    bool clicked = RenderPill(tag.c_str(), color, isSelected);
-                    
-                    if (clicked) {
-                        // When clicked, toggle the filter set if provided
-                        if (filterSet) {
-                            bool wasSelected = filterSet->count(tag) > 0;
-                            if (wasSelected) {
-                                filterSet->erase(tag);
-                            } else {
-                                filterSet->insert(tag);
-                            }
-                            
-                            if (onChangeCallback) {
-                                onChangeCallback();
-                            }
-                        }
-                    }
-                    
-                    ImGuiMCP::ImGui::PopID();
-                    
-                    // Track hovered item for custom tooltips
-                    if (ImGuiMCP::ImGui::IsItemHovered()) {
-                        hoveredItem = &item;
-                    }
-                    
-                    // Check truncation if needed
-                    if (checkTruncation) {
-                        ImGuiMCP::ImVec2 textSize;
-                        ImGuiMCP::ImGui::CalcTextSize(&textSize, tag.c_str(), nullptr, false, -1.0f);
-                        currentX += textSize.x + 16.0f;
-                        if (currentX > availRegion.x) {
-                            anyTruncated = true;
-                        }
-                    }
-                    
-                    count++;
-                    if (count < sortedItems.size()) {
-                        ImGuiMCP::ImGui::SameLine();
-                    }
-                }
-                
-                // Handle tooltips
-                ImGuiMCP::ImVec2 cellMax;
-                ImGuiMCP::ImGui::GetItemRectMax(&cellMax);
-                ImGuiMCP::ImGui::GetContentRegionAvail(&availRegion);
-                cellMax.x = cellMin.x + availRegion.x + (cellMax.x - cellMin.x);
-                
-                if (ImGuiMCP::ImGui::IsMouseHoveringRect(cellMin, cellMax) && !items.empty()) {
-                    // Show custom tooltip if provided and item is hovered
-                    if (customTooltipRenderer && hoveredItem) {
-                        ImGuiMCP::ImGui::BeginTooltip();
-                        
-                        // Show truncated list first if needed
-                        if (anyTruncated) {
-                            std::vector<std::string> allTags;
-                            for (const auto& item : items) {
-                                allTags.push_back(accessor(item));
-                            }
-                            std::sort(allTags.begin(), allTags.end());
-                            
-                            std::string allTagsStr;
-                            for (size_t idx = 0; idx < allTags.size(); ++idx) {
-                                if (idx > 0) allTagsStr += ", ";
-                                allTagsStr += allTags[idx];
-                            }
-                            ImGuiMCP::ImGui::TextWrapped("%s", allTagsStr.c_str());
-                            ImGuiMCP::ImGui::Spacing();
-                            ImGuiMCP::ImGui::Separator();
-                            ImGuiMCP::ImGui::Spacing();
-                        }
-                        
-                        // Custom tooltip content
-                        customTooltipRenderer(*hoveredItem);
-                        
-                        ImGuiMCP::ImGui::EndTooltip();
-                    }
-                    // Default tooltip: show all items if truncated or no custom renderer
-                    else if (!customTooltipRenderer || anyTruncated) {
-                        std::vector<std::string> tooltipItems;
-                        for (const auto& item : items) {
-                            tooltipItems.push_back(accessor(item));
-                        }
-                        std::sort(tooltipItems.begin(), tooltipItems.end());
-                        
-                        std::string tooltipText;
-                        for (size_t idx = 0; idx < tooltipItems.size(); ++idx) {
-                            if (idx > 0) tooltipText += ", ";
-                            tooltipText += tooltipItems[idx];
-                        }
-                        ImGuiMCP::ImGui::SetTooltip("%s", tooltipText.c_str());
-                    }
-                }
-            }
-
-            // Helper to render styled button with color
-            static bool RenderStyledButton(const char* label, const ImGuiMCP::ImVec2& size, const ImGuiMCP::ImVec4& color) {
-                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_Button, color);
-                bool clicked = ImGuiMCP::ImGui::Button(label, size);
-                ImGuiMCP::ImGui::PopStyleColor();
-                return clicked;
-            }
-
-            // Get RE::Actor from thread actor index
-            static RE::Actor* GetActorFromThread(OStim::Thread* thread, uint32_t index) {
-                if (!thread) return nullptr;
-                OStim::ThreadActor* threadActor = thread->getActor(index);
-                if (!threadActor) return nullptr;
-                void* gameActorPtr = threadActor->getGameActor();
-                return gameActorPtr ? static_cast<RE::Actor*>(gameActorPtr) : nullptr;
-            }
-
-            // Helper to get actor name from RE::Actor
-            static std::string GetActorName(RE::Actor* actor) {
-                if (!actor) return "Unknown";
-                const char* name = actor->GetName();
-                return (name && name[0] != '\0') ? name : "Unknown";
-            }
-
-            // Specialized function to render action pills with detailed tooltips
-            static void RenderActionPillCollection(const std::vector<SceneActionData>& actions, 
-                                                          OStim::Thread* thread = nullptr,
-                                                          std::function<void()> onChangeCallback = nullptr) {
-                RenderPillCollection(
-                    actions,
-                    s_currentSceneActions,
-                    [](const SceneActionData& action) -> const std::string& { return action.type; },
-                    &s_selectedActions,
-                    [](const SceneActionData& action) {
-                        // Custom tooltip for action details
-                        ImGuiMCP::ImGui::TextColored(ImGuiMCP::ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "Action: %s", action.type.c_str());
-                        
-                        if (s_currentThread) {
-                            if (action.actor >= 0) {
-                                RE::Actor* actor = GetActorFromThread(s_currentThread, action.actor);
-                                ImGuiMCP::ImGui::Text("Actor: %s", GetActorName(actor).c_str());
-                            }
-                            if (action.target >= 0) {
-                                RE::Actor* target = GetActorFromThread(s_currentThread, action.target);
-                                ImGuiMCP::ImGui::Text("Target: %s", GetActorName(target).c_str());
-                            }
-                            if (action.performer >= 0) {
-                                RE::Actor* performer = GetActorFromThread(s_currentThread, action.performer);
-                                ImGuiMCP::ImGui::Text("Performer: %s", GetActorName(performer).c_str());
-                            }
-                        }
-                    },
-                    true,  // Enable truncation checking
-                    onChangeCallback
-                );
-            }
 
             static void RenderSimilarityColumn(SceneData* scene) {
                 if (s_currentScene && s_similarityScores.count(scene)) {
@@ -496,13 +128,15 @@ namespace OStimNavigator {
             }
 
             static void RenderSceneRow(SceneData* scene, int index, OStim::Thread* thread) {
+                using namespace SceneUIHelpers;
+
                 // Push unique ID for this entire row to prevent ID conflicts between rows
                 ImGuiMCP::ImGui::PushID(index);
-                
+
                 // Buttons (Warp)
                 ImGuiMCP::ImGui::TableSetColumnIndex(1);
                 std::string warpButtonID = "Warp##" + std::to_string(index);
-                
+
                 if (RenderStyledButton(warpButtonID.c_str(), ImGuiMCP::ImVec2(60, 0), s_greenButtonColor)) {
                     auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
                     if (vm) {
@@ -515,34 +149,34 @@ namespace OStimNavigator {
                         s_filtersNeedReapply = true;
                     }
                 }
-                
+
                 // File Name
                 ImGuiMCP::ImGui::TableSetColumnIndex(2);
                 ImGuiMCP::ImGui::SetWindowFontScale(1.15f);
                 RenderTableTextColumn(scene->id.c_str());
                 ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
-                
+
                 // Name
                 ImGuiMCP::ImGui::TableSetColumnIndex(3);
                 ImGuiMCP::ImGui::SetWindowFontScale(1.15f);
                 RenderTableTextColumn(scene->name.c_str());
                 ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
-                
+
                 // Gender
                 ImGuiMCP::ImGui::TableSetColumnIndex(4);
                 RenderGenderComposition(scene->actors);
-                
+
                 // Modpack
                 ImGuiMCP::ImGui::TableSetColumnIndex(5);
                 RenderTableTextColumn(scene->modpack.c_str());
-                
+
                 // Actions (unique, as pills)
                 ImGuiMCP::ImGui::TableSetColumnIndex(6);
-                RenderActionPillCollection(scene->actions, thread,
-                    []() { 
-                        s_filtersNeedReapply = true; 
+                RenderActionPillCollection(scene->actions, s_currentSceneActions, thread, &s_selectedActions,
+                    []() {
+                        s_filtersNeedReapply = true;
                     });
-                
+
                 // Actor Tags (unique from all actors, as pills)
                 ImGuiMCP::ImGui::TableSetColumnIndex(7);
                 std::unordered_set<std::string> uniqueActorTags;
@@ -554,155 +188,23 @@ namespace OStimNavigator {
                 RenderPillCollection(uniqueActorTags, s_currentSceneActorTags,
                     [](const std::string& tag) -> const std::string& { return tag; },
                     &s_selectedActorTags, nullptr, false,
-                    []() { 
-                        s_filtersNeedReapply = true; 
+                    []() {
+                        s_filtersNeedReapply = true;
                     });
-                
+
                 // Scene Tags (as pills)
                 ImGuiMCP::ImGui::TableSetColumnIndex(8);
                 RenderPillCollection(scene->tags, s_currentSceneTags,
                     [](const std::string& tag) -> const std::string& { return tag; },
                     &s_selectedSceneTags, nullptr, false,
-                    []() { 
-                        s_filtersNeedReapply = true; 
+                    []() {
+                        s_filtersNeedReapply = true;
                     });
-                
+
                 // Pop the row ID
                 ImGuiMCP::ImGui::PopID();
             }
 
-            // Helper to render searchable tag/item selection list
-            static void RenderSearchableItemList(const std::vector<std::string>& allItems, 
-                                                 std::unordered_set<std::string>& selectedItems,
-                                                 char* searchBuffer, size_t bufferSize,
-                                                 const char* searchId, const char* searchHint,
-                                                 const char* scrollId, float scrollHeight = 200.0f,
-                                                 std::function<void()> onChangeCallback = nullptr) {
-                ImGuiMCP::ImGui::InputTextWithHint(searchId, searchHint, searchBuffer, bufferSize);
-                ImGuiMCP::ImGui::Separator();
-                
-                if (ImGuiMCP::ImGui::BeginChild(scrollId, ImGuiMCP::ImVec2(0, scrollHeight))) {
-                    std::string searchLower = searchBuffer;
-                    std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
-                    
-                    for (const auto& item : allItems) {
-                        if (searchLower.length() > 0) {
-                            std::string itemLower = item;
-                            std::transform(itemLower.begin(), itemLower.end(), itemLower.begin(), ::tolower);
-                            if (itemLower.find(searchLower) == std::string::npos) {
-                                continue;
-                            }
-                        }
-                        
-                        bool selected = selectedItems.find(item) != selectedItems.end();
-                        if (ImGuiMCP::ImGui::Checkbox(item.c_str(), &selected)) {
-                            if (selected) {
-                                selectedItems.insert(item);
-                            } else {
-                                selectedItems.erase(item);
-                            }
-                            if (onChangeCallback) {
-                                onChangeCallback();
-                            }
-                        }
-                    }
-                }
-                ImGuiMCP::ImGui::EndChild();
-            }
-
-            // Helper to render complete filter combo with AND/OR toggle
-            static void RenderFilterCombo(const char* label, bool& andMode, const char* andTooltip, const char* orTooltip,
-                                         std::unordered_set<std::string>& selectedItems, const std::vector<std::string>& allItems,
-                                         char* searchBuffer, size_t bufferSize,
-                                         const char* comboId, const char* searchId, const char* searchHint, const char* scrollId,
-                                         std::function<void()> onChangeCallback = nullptr) {
-                ImGuiMCP::ImGui::AlignTextToFramePadding();
-                
-                // Highlight label if filter is active
-                bool hasActiveFilter = !selectedItems.empty();
-                if (hasActiveFilter) {
-                    ImGuiMCP::ImGui::TextColored(s_blueTextColor, "%s (%zu)", label, selectedItems.size());
-                } else {
-                    ImGuiMCP::ImGui::Text("%s", label);
-                }
-                ImGuiMCP::ImGui::SameLine();
-                
-                if (RenderAndOrToggle(andMode, comboId, andTooltip, orTooltip)) {
-                    if (onChangeCallback) {
-                        onChangeCallback();
-                    }
-                }
-                ImGuiMCP::ImGui::SameLine();
-                
-                std::string preview = BuildPreviewText(selectedItems, "None");
-                
-                ImGuiMCP::ImGui::SetNextItemWidth(-100.0f);
-                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_PopupBg, ImGuiMCP::ImVec4(0.12f, 0.12f, 0.14f, 1.0f));
-                if (ImGuiMCP::ImGui::BeginCombo(comboId, preview.c_str())) {
-                    RenderSearchableItemList(allItems, selectedItems, searchBuffer, bufferSize, searchId, searchHint, scrollId, 200.0f, onChangeCallback);
-                    ImGuiMCP::ImGui::EndCombo();
-                }
-                ImGuiMCP::ImGui::PopStyleColor();
-                
-                ImGuiMCP::ImGui::Spacing();
-            }
-
-            // Helper to build comma-separated list from collection (template for vector/set)
-            template<typename Container>
-            static std::string BuildCommaSeparatedList(const Container& items, const std::string& prefix = "") {
-                if (items.empty()) return prefix + "None";
-                
-                std::string result = prefix;
-                bool first = true;
-                for (const auto& item : items) {
-                    if (!first) result += ", ";
-                    result += item;
-                    first = false;
-                }
-                return result;
-            }
-
-            // Helper to render pagination controls
-            static void RenderPaginationControls(int& currentPage, int& itemsPerPage, size_t totalItems) {
-                if (totalItems == 0) return;
-                
-                int totalPages = ((int)totalItems + itemsPerPage - 1) / itemsPerPage;
-                
-                if (ImGuiMCP::ImGui::Button("< Prev", ImGuiMCP::ImVec2(80, 0))) {
-                    if (currentPage > 0) currentPage--;
-                }
-                ImGuiMCP::ImGui::SameLine();
-                ImGuiMCP::ImGui::Text("Page %d of %d", currentPage + 1, totalPages);
-                ImGuiMCP::ImGui::SameLine();
-                if (ImGuiMCP::ImGui::Button("Next >", ImGuiMCP::ImVec2(80, 0))) {
-                    if (currentPage < totalPages - 1) currentPage++;
-                }
-                
-                ImGuiMCP::ImGui::SameLine();
-                ImGuiMCP::ImGui::SetCursorPosX(ImGuiMCP::ImGui::GetCursorPosX() + 20.0f);
-                ImGuiMCP::ImGui::Text("Per Page:");
-                ImGuiMCP::ImGui::SameLine();
-                ImGuiMCP::ImGui::SetNextItemWidth(80.0f);
-                ImGuiMCP::ImGui::PushStyleColor(ImGuiMCP::ImGuiCol_PopupBg, ImGuiMCP::ImVec4(0.12f, 0.12f, 0.14f, 1.0f));
-                if (ImGuiMCP::ImGui::BeginCombo("##perpage", std::to_string(itemsPerPage).c_str())) {
-                    if (ImGuiMCP::ImGui::Selectable("25", itemsPerPage == 25)) itemsPerPage = 25;
-                    if (ImGuiMCP::ImGui::Selectable("50", itemsPerPage == 50)) itemsPerPage = 50;
-                    if (ImGuiMCP::ImGui::Selectable("100", itemsPerPage == 100)) itemsPerPage = 100;
-                    ImGuiMCP::ImGui::EndCombo();
-                }
-                ImGuiMCP::ImGui::PopStyleColor();
-                
-                ImGuiMCP::ImGui::Spacing();
-            }
-
-            // Helper to render checkbox with tooltip
-            static bool RenderCheckboxWithTooltip(const char* label, bool* value, const char* tooltip) {
-                bool changed = ImGuiMCP::ImGui::Checkbox(label, value);
-                if (ImGuiMCP::ImGui::IsItemHovered()) {
-                    ImGuiMCP::ImGui::SetTooltip("%s", tooltip);
-                }
-                return changed;
-            }
 
             // Helper function to apply filters
             static void ApplyFilters(OStim::Thread* thread) {
@@ -734,6 +236,8 @@ namespace OStimNavigator {
             }
 
             void Render() {
+                using namespace SceneUIHelpers;
+
                 if (!s_isShown) {
                     return;
                 }
@@ -762,7 +266,7 @@ namespace OStimNavigator {
                     auto& actionDB = ActionDatabase::GetSingleton();
 
                     if (!ostim.IsOStimAvailable()) {
-                        ImGuiMCP::ImGui::TextColored(s_orangeTextColor, "OStim not available");
+                        ImGuiMCP::ImGui::TextColored(SceneUIHelpers::s_orangeTextColor, "OStim not available");
                         ImGuiMCP::ImGui::End();
                         ImGuiMCP::ImGui::PopStyleColor();
                         return;
@@ -770,7 +274,7 @@ namespace OStimNavigator {
 
                     auto* threadInterface = ostim.GetThreadInterface();
                     if (!threadInterface) {
-                        ImGuiMCP::ImGui::TextColored(s_redTextColor, "Error: ThreadInterface not available");
+                        ImGuiMCP::ImGui::TextColored(SceneUIHelpers::s_redTextColor, "Error: ThreadInterface not available");
                         ImGuiMCP::ImGui::End();
                         ImGuiMCP::ImGui::PopStyleColor();
                         return;
@@ -778,7 +282,7 @@ namespace OStimNavigator {
 
                     OStim::Thread* thread = threadInterface->getThread(s_selectedThreadID);
                     if (!thread) {
-                        ImGuiMCP::ImGui::TextColored(s_redTextColor, "Thread no longer exists");
+                        ImGuiMCP::ImGui::TextColored(SceneUIHelpers::s_redTextColor, "Thread no longer exists");
                         if (ImGuiMCP::ImGui::Button("Close")) {
                             s_isShown = false;
                         }
@@ -885,9 +389,9 @@ namespace OStimNavigator {
                         if (s_currentScene && !s_currentScene->actions.empty()) {
                             ImGuiMCP::ImGui::Text("Actions: ");
                             ImGuiMCP::ImGui::SameLine();
-                            RenderActionPillCollection(s_currentScene->actions, nullptr,
-                                []() { 
-                                    s_filtersNeedReapply = true; 
+                            RenderActionPillCollection(s_currentScene->actions, s_currentSceneActions, nullptr, &s_selectedActions,
+                                []() {
+                                    s_filtersNeedReapply = true;
                                 });
                         }
                         
@@ -987,7 +491,7 @@ namespace OStimNavigator {
                         // Highlight Search label if there's text in the search buffer
                         bool hasSearchText = s_searchBuffer[0] != '\0';
                         if (hasSearchText) {
-                            ImGuiMCP::ImGui::TextColored(s_blueTextColor, "Search:");
+                            ImGuiMCP::ImGui::TextColored(SceneUIHelpers::s_blueTextColor, "Search:");
                         } else {
                             ImGuiMCP::ImGui::Text("Search:");
                         }
@@ -1002,7 +506,7 @@ namespace OStimNavigator {
                         // Highlight Modpack label if filters are active
                         bool hasModpackFilter = !s_selectedModpacks.empty();
                         if (hasModpackFilter) {
-                            ImGuiMCP::ImGui::TextColored(s_blueTextColor, "Modpack: (%zu)", s_selectedModpacks.size());
+                            ImGuiMCP::ImGui::TextColored(SceneUIHelpers::s_blueTextColor, "Modpack: (%zu)", s_selectedModpacks.size());
                         } else {
                             ImGuiMCP::ImGui::Text("Modpack:");
                         }
@@ -1131,7 +635,7 @@ namespace OStimNavigator {
                     if (ImGuiMCP::ImGui::CollapsingHeader("Compatibility Filters")) {
                         ImGuiMCP::ImGui::Indent();
                         
-                        ImGuiMCP::ImGui::TextColored(s_grayTextColor, "Filter scenes based on thread compatibility");
+                        ImGuiMCP::ImGui::TextColored(SceneUIHelpers::s_grayTextColor, "Filter scenes based on thread compatibility");
                         ImGuiMCP::ImGui::Spacing();
                         
                         if (RenderCheckboxWithTooltip("Hide Transition Scenes", &s_hideTransitions,

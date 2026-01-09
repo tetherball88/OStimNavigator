@@ -31,7 +31,7 @@ namespace OStimNavigator {
         std::vector<std::string> tags;          // Scene tags
         std::vector<SceneActionData> actions;   // Actions with role mappings
         std::vector<ActorData> actors;          // Actor data for each position
-        
+
         // Optional metadata
         float length = 0.0f;                    // Animation length
         bool isTransition = false;              // Is this a transition scene

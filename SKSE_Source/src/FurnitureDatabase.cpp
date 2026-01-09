@@ -169,4 +169,14 @@ namespace OStimNavigator {
         bool compatible = threadFurnitureTypes.find(sceneFurnitureLower) != threadFurnitureTypes.end();
         return compatible;
     }
+
+    std::vector<std::string> FurnitureDatabase::GetAllFurnitureTypeIDs() const {
+        std::vector<std::string> result;
+        result.reserve(m_furnitureTypes.size());
+        for (const auto& [id, _] : m_furnitureTypes) {
+            result.push_back(id);
+        }
+        std::sort(result.begin(), result.end());
+        return result;
+    }
 }
