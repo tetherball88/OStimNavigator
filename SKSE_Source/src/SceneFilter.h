@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 namespace OStimNavigator {
-    
+
     struct SceneFilterSettings {
         // Text filters
         const char* searchText = nullptr;
@@ -42,9 +42,10 @@ namespace OStimNavigator {
     
     class SceneFilter {
     public:
-        // Apply all filters to scenes and return filtered results
+        // Apply all filters to scenes and return filtered results.
+        // threadID: the OStim thread whose actors are used for compatibility checks.
         static SceneFilterResult ApplyFilters(
-            OStim::Thread* thread,
+            uint32_t threadID,
             SceneData* currentScene,
             const SceneFilterSettings& settings
         );

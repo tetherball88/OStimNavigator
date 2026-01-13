@@ -204,10 +204,11 @@ namespace OStimNavigator {
             // Helper to render table column with text and tooltip
             void RenderTableTextColumn(const char* text);
 
-            // Specialized function to render action pills with detailed tooltips
+            // Specialized function to render action pills with detailed tooltips.
+            // threadID: pass -1 to skip per-actor name resolution.
             void RenderActionPillCollection(const std::vector<SceneActionData>& actions,
                                            const std::unordered_set<std::string>& highlightSet,
-                                           OStim::Thread* thread = nullptr,
+                                           uint32_t threadID = -1,
                                            std::unordered_set<std::string>* filterSet = nullptr,
                                            std::function<void()> onChangeCallback = nullptr);
 
@@ -247,8 +248,8 @@ namespace OStimNavigator {
             // Helper to render checkbox with tooltip
             bool RenderCheckboxWithTooltip(const char* label, bool* value, const char* tooltip);
 
-            // Get RE::Actor from thread actor index
-            RE::Actor* GetActorFromThread(OStim::Thread* thread, uint32_t index);
+            // Get RE::Actor from thread actor index via the new OStim API
+            RE::Actor* GetActorFromThread(uint32_t threadID, uint32_t index);
 
             // Helper to get actor name from RE::Actor
             std::string GetActorName(RE::Actor* actor);

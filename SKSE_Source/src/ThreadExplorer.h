@@ -6,7 +6,7 @@ namespace OStimNavigator {
     namespace UI {
         namespace ThreadExplorer {
             // Show the explorer window for a specific thread
-            void Show(int32_t threadID);
+            void Show(uint32_t threadID);
             
             // Hide the explorer window
             void Hide();

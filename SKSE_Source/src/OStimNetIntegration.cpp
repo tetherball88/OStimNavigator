@@ -375,9 +375,9 @@ namespace OStimNavigator {
 
                 // Apply description filter
                 if (s_descriptionFilter != 0) {
-                    std::string sceneIdLower = scene->id;
-                    StringUtils::ToLower(sceneIdLower);
-                    auto descIt = s_animationDescriptions.find(sceneIdLower);
+                    std::string sceneIdLowerDesc = scene->id;
+                    StringUtils::ToLower(sceneIdLowerDesc);
+                    auto descIt = s_animationDescriptions.find(sceneIdLowerDesc);
                     bool hasDescription = (descIt != s_animationDescriptions.end() && !descIt->second.description.empty());
 
                     if (s_descriptionFilter == 1 && !hasDescription) {
@@ -428,7 +428,7 @@ namespace OStimNavigator {
 
             // Actions (unique, as pills)
             ImGuiMCP::ImGui::TableSetColumnIndex(4);
-            RenderActionPillCollection(scene->actions, s_emptyHighlightSet, nullptr, &s_selectedActions,
+            RenderActionPillCollection(scene->actions, s_emptyHighlightSet, UINT32_MAX, &s_selectedActions,
                 []() {
                     ApplyFilters();
                 });
@@ -903,7 +903,7 @@ namespace OStimNavigator {
                     if (!s_editorScene->actions.empty()) {
                         ImGuiMCP::ImGui::Text("Actions:");
                         ImGuiMCP::ImGui::SameLine();
-                        RenderActionPillCollection(s_editorScene->actions, s_emptyHighlightSet, nullptr, nullptr, nullptr);
+                        RenderActionPillCollection(s_editorScene->actions, s_emptyHighlightSet, UINT32_MAX, nullptr, nullptr);
                     }
 
                     ImGuiMCP::ImGui::Spacing();

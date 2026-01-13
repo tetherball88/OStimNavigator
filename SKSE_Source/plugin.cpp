@@ -61,6 +61,14 @@ SKSEPluginLoad(const LoadInterface* skse) {
     SetupLogging();
     SKSE::log::info("OstimNavigator plugin loading...");
 
+    // Check if OStim is loaded (it should load before us alphabetically)
+    if (const auto* ostimInfo = skse->GetPluginInfo("OStim")) {
+        SKSE::log::info("Found OStim plugin version {}.{}.{}",
+            ostimInfo->version >> 24,
+            (ostimInfo->version >> 16) & 0xFF,
+            (ostimInfo->version >> 8) & 0xFF);
+    }
+
     if (const auto* messaging = SKSE::GetMessagingInterface()) {
         if (!messaging->RegisterListener([](SKSE::MessagingInterface::Message* message) {
                 switch (message->type) {
@@ -71,13 +79,21 @@ SKSEPluginLoad(const LoadInterface* skse) {
                     case SKSE::MessagingInterface::kPostLoadGame:
                     case SKSE::MessagingInterface::kNewGame:
                         SKSE::log::info("New game/Load...");
+                        if (!OStimNavigator::OStimIntegration::GetSingleton().IsOStimAvailable()) {
+                            SKSE::log::info("Retrying OStim integration...");
+                            OStimNavigator::OStimIntegration::GetSingleton().Initialize(
+                                SKSE::PluginDeclaration::GetSingleton()->GetName().data(),
+                                SKSE::PluginDeclaration::GetSingleton()->GetVersion());
+                        }
                         break;
 
                     case SKSE::MessagingInterface::kDataLoaded: {
                         SKSE::log::info("Data loaded successfully.");
 
                         // Initialize OStim integration
-                        OStimNavigator::OStimIntegration::GetSingleton().Initialize();
+                        OStimNavigator::OStimIntegration::GetSingleton().Initialize(
+                            SKSE::PluginDeclaration::GetSingleton()->GetName().data(),
+                            SKSE::PluginDeclaration::GetSingleton()->GetVersion());
                         
                         // Load furniture database (must be loaded before scenes for furniture validation)
                         OStimNavigator::FurnitureDatabase::GetSingleton().LoadFurnitureTypes();

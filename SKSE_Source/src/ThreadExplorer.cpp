@@ -16,9 +16,8 @@ namespace OStimNavigator {
         namespace ThreadExplorer {
             // Window state
             static bool s_isShown = false;
-            static int32_t s_selectedThreadID = -1;
+            static uint32_t s_selectedThreadID = -1;
             static SceneData* s_currentScene = nullptr;  // Current scene in the thread
-            static OStim::Thread* s_currentThread = nullptr;  // Current thread for actor name resolution
             static std::string s_lastSceneID = "";  // Track scene changes for similarity recalculation
             
             // Filter state
@@ -56,7 +55,7 @@ namespace OStimNavigator {
             // Flag to defer filter application until after table rendering
             static bool s_filtersNeedReapply = false;
 
-            void Show(int32_t threadID) {
+            void Show(uint32_t threadID) {
                 bool threadChanged = (s_selectedThreadID != threadID);
                 s_selectedThreadID = threadID;
                 s_isShown = true;
@@ -104,7 +103,7 @@ namespace OStimNavigator {
             }
 
             // Forward declaration
-            static void ApplyFilters(OStim::Thread* thread);
+            static void ApplyFilters(uint32_t threadID);
 
             static void RenderSimilarityColumn(SceneData* scene) {
                 if (s_currentScene && s_similarityScores.count(scene)) {
@@ -127,7 +126,7 @@ namespace OStimNavigator {
                 }
             }
 
-            static void RenderSceneRow(SceneData* scene, int index, OStim::Thread* thread) {
+            static void RenderSceneRow(SceneData* scene, int index, uint32_t threadID) {
                 using namespace SceneUIHelpers;
 
                 // Push unique ID for this entire row to prevent ID conflicts between rows
@@ -140,7 +139,7 @@ namespace OStimNavigator {
                 if (RenderStyledButton(warpButtonID.c_str(), ImGuiMCP::ImVec2(60, 0), s_greenButtonColor)) {
                     auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
                     if (vm) {
-                        auto* args = RE::MakeFunctionArguments((int)s_selectedThreadID, std::move(scene->id), true);
+                        auto* args = RE::MakeFunctionArguments((int)s_selectedThreadID, std::string(scene->id), true);
                         RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback;
                         vm->DispatchStaticCall("OThread", "WarpTo", args, callback);
                         delete args;
@@ -172,7 +171,7 @@ namespace OStimNavigator {
 
                 // Actions (unique, as pills)
                 ImGuiMCP::ImGui::TableSetColumnIndex(6);
-                RenderActionPillCollection(scene->actions, s_currentSceneActions, thread, &s_selectedActions,
+                RenderActionPillCollection(scene->actions, s_currentSceneActions, threadID, &s_selectedActions,
                     []() {
                         s_filtersNeedReapply = true;
                     });
@@ -207,7 +206,7 @@ namespace OStimNavigator {
 
 
             // Helper function to apply filters
-            static void ApplyFilters(OStim::Thread* thread) {
+            static void ApplyFilters(uint32_t threadID) {
                 // Build filter settings from current UI state
                 SceneFilterSettings settings;
                 settings.searchText = s_searchBuffer;
@@ -225,9 +224,9 @@ namespace OStimNavigator {
                 settings.validateRequirements = s_validateRequirements;
                 settings.hideNonRandom = s_hideNonRandom;
                 settings.hideIntroIdle = s_hideIntroIdle;
-                
+
                 // Apply filters using SceneFilter module
-                auto result = SceneFilter::ApplyFilters(thread, s_currentScene, settings);
+                auto result = SceneFilter::ApplyFilters(threadID, s_currentScene, settings);
                 
                 // Update local state with results
                 s_filteredScenes = std::move(result.filteredScenes);
@@ -244,7 +243,7 @@ namespace OStimNavigator {
 
                 // Track if this is the first render after showing the window
                 static bool s_firstRender = true;
-                static int32_t s_lastThreadID = -1;
+                static uint32_t s_lastThreadID = -1;
 
                 // Reset first render flag when thread changes or window was hidden
                 if (s_lastThreadID != s_selectedThreadID) {
@@ -272,16 +271,16 @@ namespace OStimNavigator {
                         return;
                     }
 
-                    auto* threadInterface = ostim.GetThreadInterface();
-                    if (!threadInterface) {
+                    auto* iface = ostim.GetThreadInterface();
+                    if (!iface) {
                         ImGuiMCP::ImGui::TextColored(SceneUIHelpers::s_redTextColor, "Error: ThreadInterface not available");
                         ImGuiMCP::ImGui::End();
                         ImGuiMCP::ImGui::PopStyleColor();
                         return;
                     }
 
-                    OStim::Thread* thread = threadInterface->getThread(s_selectedThreadID);
-                    if (!thread) {
+                    uint32_t threadID = s_selectedThreadID;
+                    if (!iface->IsThreadValid(threadID)) {
                         ImGuiMCP::ImGui::TextColored(SceneUIHelpers::s_redTextColor, "Thread no longer exists");
                         if (ImGuiMCP::ImGui::Button("Close")) {
                             s_isShown = false;
@@ -290,13 +289,10 @@ namespace OStimNavigator {
                         ImGuiMCP::ImGui::PopStyleColor();
                         return;
                     }
-                    
-                    // Store thread for action tooltips
-                    s_currentThread = thread;
-                    
+
                     // Auto-apply filters on first render
                     if (s_firstRender) {
-                        ApplyFilters(thread);
+                        ApplyFilters(threadID);
                         s_firstRender = false;
                     }
 
@@ -307,18 +303,17 @@ namespace OStimNavigator {
                         ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
                         ImGuiMCP::ImGui::Indent();
                         
-                        uint32_t actorCount = thread->getActorCount();
-                        
+                        uint32_t actorCount = iface->GetActorCount(threadID);
+
                         // Current Scene - collect data first
                         s_currentScene = nullptr;  // Reset current scene
                         s_currentSceneActions.clear();
                         s_currentSceneTags.clear();
                         s_currentSceneActorTags.clear();
-                        
+
                         std::string currentSceneID = "";
-                        OStim::Node* currentNode = thread->getCurrentNode();
-                        if (currentNode) {
-                            const char* sceneID = currentNode->getNodeID();
+                        {
+                            const char* sceneID = iface->GetCurrentSceneID(threadID);
                             if (sceneID && sceneID[0] != '\0') {
                                 currentSceneID = sceneID;
                                 SceneData* sceneData = sceneDB.GetSceneByID(sceneID);
@@ -375,7 +370,7 @@ namespace OStimNavigator {
                         }
                         
                         // Selected Thread info with type and gender composition
-                        ImGuiMCP::ImGui::Text("Selected Thread: Thread %d (%s)", thread->getThreadID(), threadType.c_str());
+                        ImGuiMCP::ImGui::Text("Selected Thread: Thread %u (%s)", threadID, threadType.c_str());
                         
                         // Gender Composition (on same line)
                         if (s_currentScene && !s_currentScene->actors.empty()) {
@@ -389,7 +384,7 @@ namespace OStimNavigator {
                         if (s_currentScene && !s_currentScene->actions.empty()) {
                             ImGuiMCP::ImGui::Text("Actions: ");
                             ImGuiMCP::ImGui::SameLine();
-                            RenderActionPillCollection(s_currentScene->actions, s_currentSceneActions, nullptr, &s_selectedActions,
+                            RenderActionPillCollection(s_currentScene->actions, s_currentSceneActions, threadID, &s_selectedActions,
                                 []() {
                                     s_filtersNeedReapply = true;
                                 });
@@ -411,7 +406,7 @@ namespace OStimNavigator {
                         ImGuiMCP::ImGui::Text("Actors: ");
                         ImGuiMCP::ImGui::SameLine();
                         for (uint32_t i = 0; i < actorCount; ++i) {
-                            RE::Actor* actor = GetActorFromThread(thread, i);
+                            RE::Actor* actor = GetActorFromThread(threadID, i);
                             if (actor) {
                                 std::string actorName = GetActorName(actor);
                                 ImGuiMCP::ImGui::Text("%s (", actorName.c_str());
@@ -462,7 +457,7 @@ namespace OStimNavigator {
                         std::string furnitureStr = "Furniture: None";
                         
                         if (furnitureDB.IsLoaded() && actorCount > 0) {
-                            RE::Actor* actor = GetActorFromThread(thread, 0);
+                            RE::Actor* actor = GetActorFromThread(threadID, 0);
                             if (actor) {
                                 auto furnitureTypes = furnitureDB.GetFurnitureTypesFromActor(actor);
                                 if (!furnitureTypes.empty()) {
@@ -497,7 +492,7 @@ namespace OStimNavigator {
                         }
                         ImGuiMCP::ImGui::SetNextItemWidth(-10.0f);
                         if (ImGuiMCP::ImGui::InputTextWithHint("##search", "Scene name or ID...", s_searchBuffer, sizeof(s_searchBuffer))) {
-                            ApplyFilters(thread);
+                            ApplyFilters(s_selectedThreadID);
                         }
                         
                         // Right Column: Modpack
@@ -537,7 +532,7 @@ namespace OStimNavigator {
                                         } else {
                                             s_selectedModpacks.erase(modpack);
                                         }
-                                        ApplyFilters(thread);
+                                        ApplyFilters(s_selectedThreadID);
                                     }
                                 }
                             }
@@ -565,7 +560,7 @@ namespace OStimNavigator {
                                 "AND: Scene must have ALL selected tags", "OR: Scene must have ANY selected tag",
                                 s_selectedSceneTags, sceneDB.GetAllTags(), tagSearchBuffer, sizeof(tagSearchBuffer),
                                 "##scene_tags_combo", "##tag_search", "Search tags...", "##scene_tags_scroll",
-                                [&thread]() { ApplyFilters(thread); });
+                                [threadID]() { ApplyFilters(threadID); });
                             
                             // Right Column: Actor Tags
                             ImGuiMCP::ImGui::NextColumn();
@@ -574,7 +569,7 @@ namespace OStimNavigator {
                                 "AND: At least one actor must have ALL selected tags", "OR: At least one actor must have ANY selected tag",
                                 s_selectedActorTags, sceneDB.GetAllActorTags(), actorTagSearchBuffer, sizeof(actorTagSearchBuffer),
                                 "##actor_tags_combo", "##actor_tag_search", "Search tags...", "##actor_tags_scroll",
-                                [&thread]() { ApplyFilters(thread); });
+                                [threadID]() { ApplyFilters(threadID); });
                             
                             ImGuiMCP::ImGui::Columns(1);
                             
@@ -586,7 +581,7 @@ namespace OStimNavigator {
                                 "AND: Scene must have ALL selected actions", "OR: Scene must have ANY selected action",
                                 s_selectedActions, sceneDB.GetAllActions(), actionSearchBuffer, sizeof(actionSearchBuffer),
                                 "##actions_combo", "##action_search", "Search actions...", "##actions_scroll",
-                                [&thread]() { ApplyFilters(thread); });
+                                [threadID]() { ApplyFilters(threadID); });
                             
                             // Right Column: Action Tags
                             ImGuiMCP::ImGui::NextColumn();
@@ -598,7 +593,7 @@ namespace OStimNavigator {
                                     "AND: Scene actions must have ALL selected tags", "OR: Scene actions must have ANY selected tag",
                                     s_selectedActionTags, actionDB.GetAllTags(), actionTagSearchBuffer, sizeof(actionTagSearchBuffer),
                                     "##action_tags_combo", "##action_tag_search", "Search action tags...", "##action_tags_scroll",
-                                    [&thread]() { ApplyFilters(thread); });
+                                    [threadID]() { ApplyFilters(threadID); });
                             }
                             
                             ImGuiMCP::ImGui::Columns(1);
@@ -616,7 +611,7 @@ namespace OStimNavigator {
                             s_selectedActorTags.clear();
                             s_selectedActions.clear();
                             s_selectedActionTags.clear();
-                            ApplyFilters(thread);
+                            ApplyFilters(s_selectedThreadID);
                         }
                         
                         ImGuiMCP::ImGui::Spacing();
@@ -640,27 +635,27 @@ namespace OStimNavigator {
                         
                         if (RenderCheckboxWithTooltip("Hide Transition Scenes", &s_hideTransitions,
                             "Exclude transition/navigation scenes from results")) {
-                            ApplyFilters(thread);
+                            ApplyFilters(s_selectedThreadID);
                         }
                         
                         if (RenderCheckboxWithTooltip("Use Intended Sex", &s_useIntendedSex,
                             "Filter scenes based on actor sex requirements (male/female).\nScenes requiring specific sexes will be excluded if thread actors don't match.")) {
-                            ApplyFilters(thread);
+                            ApplyFilters(s_selectedThreadID);
                         }
                         
                         if (RenderCheckboxWithTooltip("Validate Actor Requirements", &s_validateRequirements,
                             "Filter scenes based on actor property requirements.\nScenes will be excluded if thread actors don't meet action requirements\n(e.g., vampire, penis, mouth, etc.).")) {
-                            ApplyFilters(thread);
+                            ApplyFilters(s_selectedThreadID);
                         }
                         
                         if (RenderCheckboxWithTooltip("Hide Non-Random Scenes", &s_hideNonRandom,
                             "Exclude scenes marked as not suitable for auto mode.\nThese scenes are typically not immersive for random selection.")) {
-                            ApplyFilters(thread);
+                            ApplyFilters(s_selectedThreadID);
                         }
                         
                         if (RenderCheckboxWithTooltip("Hide Intro/Idle Scenes", &s_hideIntroIdle,
                             "Exclude scenes tagged with 'intro' or 'idle'.\nThese are typically starting animations or idle poses.")) {
-                            ApplyFilters(thread);
+                            ApplyFilters(s_selectedThreadID);
                         }
                         
                         ImGuiMCP::ImGui::Unindent();
@@ -764,7 +759,7 @@ namespace OStimNavigator {
                                 ImGuiMCP::ImGui::TableSetColumnIndex(0);
                                 RenderSimilarityColumn(scene);
                                 
-                                RenderSceneRow(scene, i, thread);
+                                RenderSceneRow(scene, i, threadID);
                             }
                             
                             if (s_filteredScenes.empty()) {
@@ -778,7 +773,7 @@ namespace OStimNavigator {
                         
                         // Apply filters after table rendering if needed
                         if (s_filtersNeedReapply) {
-                            ApplyFilters(thread);
+                            ApplyFilters(s_selectedThreadID);
                             s_filtersNeedReapply = false;
                             SKSE::log::info("  Filtered scenes result: {}", s_filteredScenes.size());
                         }

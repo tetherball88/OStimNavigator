@@ -1,6 +1,6 @@
 # OStim Navigator
 
-A powerful SKSE plugin for **Skyrim** that provides an advanced in-game interface for browsing, filtering, and navigating **OStim NG** scenes in real-time.
+A powerful SKSE plugin for **Skyrim** that provides an advanced in-game interface for browsing, filtering, and navigating **OStim** scenes in real-time.
 
 ## Active Threads Monitor
 - **Live Thread Tracking**: View all active OStim threads with automatic refresh

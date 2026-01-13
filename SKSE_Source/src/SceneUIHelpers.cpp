@@ -167,7 +167,7 @@ namespace OStimNavigator {
 
             void RenderActionPillCollection(const std::vector<SceneActionData>& actions,
                                            const std::unordered_set<std::string>& highlightSet,
-                                           OStim::Thread* thread,
+                                           uint32_t threadID,
                                            std::unordered_set<std::string>* filterSet,
                                            std::function<void()> onChangeCallback) {
                 RenderPillCollection(
@@ -175,34 +175,31 @@ namespace OStimNavigator {
                     highlightSet,
                     [](const SceneActionData& action) -> const std::string& { return action.type; },
                     filterSet,
-                    [thread](const SceneActionData& action) {
+                    [threadID](const SceneActionData& action) {
                         // Custom tooltip for action details
                         ImGuiMCP::ImGui::TextColored(ImGuiMCP::ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "Action: %s", action.type.c_str());
 
-                        if (thread) {
+                        if (threadID != -1) {
                             if (action.actor >= 0) {
-                                RE::Actor* actor = GetActorFromThread(thread, action.actor);
+                                RE::Actor* actor = GetActorFromThread(threadID, action.actor);
                                 ImGuiMCP::ImGui::Text("Actor: %s (Index %d)", GetActorName(actor).c_str(), action.actor);
                             }
                             if (action.target >= 0) {
-                                RE::Actor* target = GetActorFromThread(thread, action.target);
+                                RE::Actor* target = GetActorFromThread(threadID, action.target);
                                 ImGuiMCP::ImGui::Text("Target: %s (Index %d)", GetActorName(target).c_str(), action.target);
                             }
                             if (action.performer >= 0) {
-                                RE::Actor* performer = GetActorFromThread(thread, action.performer);
+                                RE::Actor* performer = GetActorFromThread(threadID, action.performer);
                                 ImGuiMCP::ImGui::Text("Performer: %s (Index %d)", GetActorName(performer).c_str(), action.performer);
                             }
                         } else {
-                            // Show actor indexes when no thread available (e.g., in editor)
-                            if (action.actor >= 0) {
+                            // Show actor indexes when no thread available
+                            if (action.actor >= 0)
                                 ImGuiMCP::ImGui::Text("Actor: Index %d", action.actor);
-                            }
-                            if (action.target >= 0) {
+                            if (action.target >= 0)
                                 ImGuiMCP::ImGui::Text("Target: Index %d", action.target);
-                            }
-                            if (action.performer >= 0) {
+                            if (action.performer >= 0)
                                 ImGuiMCP::ImGui::Text("Performer: Index %d", action.performer);
-                            }
                         }
                     },
                     true,  // Enable truncation checking
@@ -372,12 +369,8 @@ namespace OStimNavigator {
                 return changed;
             }
 
-            RE::Actor* GetActorFromThread(OStim::Thread* thread, uint32_t index) {
-                if (!thread) return nullptr;
-                OStim::ThreadActor* threadActor = thread->getActor(index);
-                if (!threadActor) return nullptr;
-                void* gameActorPtr = threadActor->getGameActor();
-                return gameActorPtr ? static_cast<RE::Actor*>(gameActorPtr) : nullptr;
+            RE::Actor* GetActorFromThread(uint32_t threadID, uint32_t index) {
+                return OStimNavigator::OStimIntegration::GetSingleton().GetActorFromThread(threadID, index);
             }
 
             std::string GetActorName(RE::Actor* actor) {
