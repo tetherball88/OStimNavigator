@@ -1,0 +1,165 @@
+/* ── backdrop ──────────────────────────────────────────────────────────── */
+
+.preset-modal-backdrop {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 30vw;
+    min-width: 600px;
+    height: 100vh;
+    z-index: 1000;
+    display: flex;
+    align-items: stretch;
+}
+
+.preset-modal-backdrop--left {
+    right: auto;
+    left: 0;
+}
+
+/* ── modal card ────────────────────────────────────────────────────────── */
+
+.preset-modal {
+    display: flex;
+    flex-direction: column;
+    width: 30vw;
+    min-width: 600px;
+    height: 100vh;
+    background: #1e1c18;
+    border-left: 1px solid var(--amber-dim);
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.preset-modal-backdrop--left .preset-modal {
+    border-left: none;
+    border-right: 1px solid var(--amber-dim);
+}
+
+/* ── header ────────────────────────────────────────────────────────────── */
+
+.preset-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    padding: 0.6em 1em;
+    background: rgba(200, 168, 75, 0.06);
+    border-bottom: 1px solid var(--amber-dim);
+    flex-shrink: 0;
+}
+
+.preset-modal-title {
+    font-size: 0.95em;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.preset-modal-scene-id {
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.88em;
+}
+
+.preset-modal-header-actions {
+    display: flex;
+    gap: 0.5em;
+    flex-shrink: 0;
+}
+
+/* ── header buttons ────────────────────────────────────────────────────── */
+
+.preset-btn {
+    padding: 0.28em 0.8em;
+    border-radius: 999px;
+    font-size: 0.82em;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.preset-btn--save {
+    background: rgba(80, 180, 100, 0.12);
+    border-color: rgba(80, 180, 100, 0.35);
+    color: #7dd89a;
+    min-width: 4.5em;
+}
+
+.preset-btn--save:hover {
+    background: rgba(80, 180, 100, 0.24);
+}
+
+.preset-btn--copy {
+    background: rgba(200, 168, 75, 0.12);
+    border-color: var(--amber-dim);
+    color: var(--amber-light);
+    min-width: 4.5em;
+}
+
+.preset-btn--copy:hover {
+    background: rgba(200, 168, 75, 0.24);
+}
+
+.preset-btn--dock {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.75em;
+}
+
+.preset-btn--dock:hover {
+    background: rgba(200, 168, 75, 0.18);
+    border-color: var(--amber-dim);
+    color: var(--amber-light);
+}
+
+.preset-btn--close {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.preset-btn--close:hover {
+    background: rgba(255, 60, 60, 0.18);
+    border-color: rgba(255, 60, 60, 0.35);
+    color: #fff;
+}
+
+/* ── tabs ──────────────────────────────────────────────────────────────── */
+
+.preset-modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--amber-dim);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.preset-tab {
+    padding: 0.45em 1.2em;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.85em;
+    cursor: pointer;
+    margin-bottom: -1px;
+}
+
+.preset-tab:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.preset-tab--active {
+    color: var(--amber);
+    border-bottom-color: var(--amber);
+}
+
+/* ── editor area / blank ───────────────────────────────────────────────── */
+
+.preset-modal-blank {
+    flex: 1 1 0;
+}

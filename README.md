@@ -2,140 +2,130 @@
 
 A powerful SKSE plugin for **Skyrim** that provides an advanced in-game interface for browsing, filtering, and navigating **OStim** scenes in real-time.
 
-## Active Threads Monitor
-- **Live Thread Tracking**: View all active OStim threads with automatic refresh
-- **Thread Information Display**:
-  - Thread ID and player thread indicator
-  - Actor count and names
-  - Current scene/animation
-  - Quick access to thread explorer
+> For more details on the underlying GUI framework, see the [SKSE Menu Framework README](./SKSE%20Menu%20Framework%20README.md).
 
-## Advanced Scene Explorer
-Navigate and filter thousands of OStim scenes with a comprehensive set of tools:
+---
 
-### Scene Browser
-- **Sortable Table View**: Browse scenes with columns for:
-  - Similarity score (compared to current scene)
-  - Scene ID and display name
-  - Gender composition (visual icons: ♂ male, ♀ female, ⚥ other)
-  - Modpack source
-  - Actions (with interactive pills)
-  - Actor tags (with interactive pills)
-  - Scene tags (with interactive pills)
-- **One-Click Navigation**: Warp to any scene instantly with the "Warp" button
-- **Pagination**: Navigate through large scene lists efficiently
+## New Prisma UI GUI for Modders
 
-### Current Thread Stats
-Real-time information about the selected thread:
-- Thread type classification (sexual/sensual/none)
-- Gender composition with color-coded icons
-- Current scene details with modpack information
-- Active actions displayed as clickable filter pills
-- Scene and actor tags displayed as clickable filter pills
-- Participating actors with their tags
-- Furniture type detection
+![OStim Navigator Demo](./docs/navigator_65.gif)
 
-### Smart Similarity Scoring
-Automatically calculates and displays similarity scores between the current scene and all available scenes based on:
-- Shared actions
-- Matching scene tags
-- Common actor tags
-- Visual color-coded indicators (green = high, yellow = medium, orange = low)
+This is an in-game **OStim scene editor** built for modders. It supports OStim's upcoming **hot reload** functionality (not yet officially released by OStim), which will let you edit and save scenes while in-game and have OStim respect those changes immediately.
 
-### Powerful Filtering System
+> ⚠️ **Note:** Not everything works perfectly with hot reload yet. For example, `sosBend` currently ignored after a hot reload.
 
-**Search**
-- Real-time text search across scene IDs and names
+> ⚠️ **This feature is intended for modders only — not regular end users!**
 
-**Modpack Filter**
-- Select specific modpacks to include in results
+Hot reload does work, but it isn't fully reliable during long play sessions. If something goes wrong, it's best to reload your game rather than continue troubleshooting mid-session.
 
-**Scene Tags Filter**
-- AND/OR mode toggle for combining multiple tags
-- Click tags from current scene to quickly add them as filters
-- Common tags: position types, locations, activities, etc.
+### Opening the Editor & Controls
 
-**Actor Tags Filter**
-- AND/OR mode toggle
-- Click actor tags from current scene to filter
-- Tags: body parts, properties, roles, etc.
+You can open the editor through OStim's own options menu:
 
-**Actions Filter**
-- AND/OR mode toggle
-- Filter by specific animation actions
-- Click actions from current scene to add filters
-- Detailed action tooltips showing actor/target/performer roles
+> Navigate with your OStim hotkeys to `Options` → `OStim Navigator Options` → `Show Dev Editor`.
 
-**Action Tags Filter**
-- AND/OR mode toggle
-- Filter by action categories (sexual, romantic, sensual, etc.)
+This opens a **Prisma UI** modal window, which will automatically gain focus and show the cursor so you can interact with the OStim Navigator table.
 
-**Compatibility Filters**
-Automatically filter scenes based on thread compatibility:
-- **Hide Transition Scenes**: Exclude navigation/transition animations
-- **Use Intended Sex**: Filter by actor gender requirements (male/female)
-- **Validate Actor Requirements**: Check for required properties (vampire, penis, specific body parts, etc.)
-- **Hide Non-Random Scenes**: Exclude scenes not suitable for auto mode
-- **Hide Intro/Idle Scenes**: Remove starting animations and idle poses
+**New to Prisma UI?** Here's what you need to know:
+- While the Prisma UI cursor is **visible**, you cannot rotate the camera in-game — this is the **focused** state.
+- When the cursor is hidden, that's the **unfocused** state, and normal camera controls return.
 
-### Interactive Features
-- **Clickable Pills**: Click any tag or action pill in the Current Thread section to instantly add it as a filter
-- **Automatic Re-filtering**: Scene list updates automatically when clicking pills or changing filters
-- **Similarity Auto-Update**: Similarity scores recalculate automatically when the scene changes (via warp or natural progression)
-- **Quick Clear**: One-click button to reset all filters
-- **Live Results Counter**: See filtered scene count in real-time
+The editor is designed primarily for **mouse** use.
 
-## Requirements
+**Key hotkey:** `Num2` (default) — toggles between `focused` and `unfocused` states.
 
-- **Skyrim Special Edition**
-- **SKSE64** (Skyrim Script Extender)
-- [**OStim Standalone - Advanced Adult Animation Framework**](https://www.nexusmods.com/skyrimspecialedition/mods/98163)
-- [**SKSE Menu Framework**](https://www.nexusmods.com/skyrimspecialedition/mods/120352)
+Even while OStim Navigator is in the `focused` state, you can still use your regular OStim hotkeys to navigate scenes normally.
 
-## Installation
 
-1. Install all requirements listed above
-2. Download the latest release
-3. Extract to your Skyrim Data folder
-4. The plugin will load automatically with SKSE
+### Filters and Table
 
-## Usage
+The editor includes multiple filters to help you quickly narrow down and locate the exact scene you want to edit.
 
-1. **Open the Menu**: Access via SKSE Menu Framework menu (default key configured in SKSE Menu Framework, by default **F1**)
-2. **Navigate to "OStim Navigator" → "Active Threads"**
-3. **View Active Threads**: See all currently running OStim animations
-4. **Click "Explore"**: Opens the Scene Explorer for that thread
-5. **Use Filters**: Apply tags, actions, or search to find specific scenes
-6. **Click Pills**: Click any tag/action in the thread stats to add it as a filter
-7. **Warp to Scene**: Click the `Warp` button on any scene to navigate immediately
-    - **Known Issue** - If your SKSE Menu Configured to pause game, when you warp not all actors gets undressed by OStim. **Solution**: In SKSE Menu Framework settings(click on dropdown in top left corner) select to not pause game. SKSE Menu uses weird pause mechanic and it doesn't fully pause game only slows down time, which makes OStim to visually stop playing animations but all other OStim functionality works: excitment bars filling, sounds playing, etc...
+- The **table** lists animations, each with a `Warp` button that instantly jumps you to that scene.
+- The **top row** always represents your currently active animation.
+- The `Edit` button opens the **Scene JSON Editor**:
+  - If you click `Edit` on the **currently active** animation, the editor content will automatically update as you navigate through scenes using your normal OStim hotkeys.
+  - If you click `Edit` on **any other** scene in the table, the editor locks to that specific scene and will **not** change even if you navigate away via OStim hotkeys.
 
-### Tips
+### OStim Scene JSON Editor
 
-- **Quick Filtering**: Click tags from your current scene to find similar animations
-- **Combine Filters**: Use AND mode to narrow results, OR mode to broaden them
-- **Use Similarity**: Sort by similarity score to find the most relevant transitions
-- **Check Compatibility**: Enable compatibility filters to ensure scenes will work with your current actors
-- **Gender Icons**: Quickly identify scene configurations by the colored gender symbols
+This is a VS Code-style JSON editor built right into the game. It supports familiar editor hotkeys — for example, `CTRL+S` saves your changes directly to the scene file on your file system.
 
-## Technical Details
+> ⚠️ **Always back up your files before editing.** Using Git (or another version control tool) is strongly recommended so you can easily revert to a previous stable version if something breaks.
 
-### Databases Loaded
-- **Scene Database**: All OStim scene definitions from Data/SKSE/Plugins/OStim/scenes/
-- **Action Database**: Action definitions and their tags
-- **Actor Properties Database**: Actor requirement definitions
-- **Furniture Database**: Furniture type mappings
+> **MO2 users:** Saved changes are written to the corresponding file inside your mod folder.
 
-### Similarity Algorithm
-Calculates scene similarity using weighted factors:
-- Action overlap
-- Scene tag matching
-- Actor tag compatibility
-- Smart scoring system prioritizes playable transitions
+Editor features:
 
-### Performance
-- Efficient caching of filtered results
-- Lazy evaluation of similarity scores
-- Automatic refresh intervals for thread monitoring
-- Optimized rendering with pagination
+- **Schema validation** — checks your JSON for typos in key names and ensures all minimum required fields are present.
+- **Intellisense for `tags` and `actions` strings** — start typing a quotation mark (`"`) inside those fields to get a dropdown of the most commonly used tags and action strings (sourced directly from OStim-NG's files).
+- **`Add action` button** — click this next to the `"actions"` key to insert an empty template automatically:
 
+```json
+{
+    "actor": 0,
+    "type": ""
+}
+```
+
+![OStim Navigator Editor Intellisense Demo](./docs/navigator_scene_editor_65.gif)
+
+---
+
+## OStimNet Tab
+
+When you open the editor, you'll notice a second tab called **OStimNet**. This tab belongs to my other mod, **OStimNet**, but it contains two dropdowns that help improve automatic animation classification and filtering:
+
+### Intent Dropdown
+
+This sets the scene's **intent** — but keep in mind, **most scenes don't need an intent at all.** Only apply one if your animation clearly and specifically depicts one of the following situations:
+
+| Intent | Description |
+|---|---|
+| *(none)* | Generic scene that can be used with any thread intent. |
+| `platonic` | Non-romantic interactions between friends or relatives. Usually limited to hug-only animations that aren't overly romantic (e.g., carrying with leg locks, or other subtle romantic hints should be avoided). |
+| `romantic` | Depicts a romantic relationship — for example, holding hands, kissing, eye contact, or caring gestures like patting someone's head. It doesn't need to be sexual; hugging or kissing-only animations qualify too. |
+| `lustful` | Raw passion with little emotional depth — think pulling hair or intense, urgent movements that convey pure sexual tension. This is rare: out of thousands of animations, only a handful genuinely fit this category, so use it sparingly and carefully. |
+| `transactional` | A sexual act performed as a service or transaction. Extremely rare — one example would be an animation where an actor is visibly holding a bag of gold or similar payment. |
+| `dom` | Consensual power dynamics. If your animation shows neck holding, cuffing, or restraining **without any visible struggle from the receiver**, this fits. |
+| `aggressive` | Non-consensual power dynamics (self-explanatory). I don't use any packs specifically for this, but if your scene depicts visible struggle or resistance, mark it here — this helps ensure romantic threads don't accidentally pick animations they shouldn't. |
+
+### Sexual Positions Dropdown
+
+I've expanded on OStim's default position list to include more granular options — some more commonly used than others, so apply them based on your own judgment. For example, `missionary` has been split into more specific variants: `missionary`, `butterfly`, `anvil`, `matingpress`, `piledriver`, and `seashell`.
+
+These extended, more descriptive positions help the LLM (via OStimNet) better understand and describe what's actually happening in the animation.
+
+> Don't forget to click **Save** to apply your changes.
+
+### Auto Description
+
+This is a **preview only** — it shows how OStim Navigator automatically builds a scene description based on the actors involved, their tags, the scene's tags, and its actions. This field **cannot be edited directly**.
+
+### Custom Override
+
+Here you can write your own description manually, or generate one with an LLM. This custom description will be used by OStimNet **instead of** the auto-generated one.
+
+When you click `Generate`(You need to have `SkyrimNet` installed for it), a small window will appear where you can add extra context or instructions for the LLM about the animation. For example:
+
+- `female 1 and male 0 have eye contact.`
+- `female 2 looks at male 1. female 3 looks at male 0.`
+
+Since "hugging" as an action tag is very broad, it's helpful to specify exactly what kind of hug is happening — for example:
+
+- `female 1's arms wrapped around male 0's neck/shoulder.`
+- `male 0 lifts female 1 up, holding her by the hips.`
+
+You can also call out pacing or intensity details that aren't obvious from tags alone. For instance, if the animation only has one speed setting but is visibly fast, you might add:
+
+- `Fast pace.`
+- `Wide thrusts.`
+- `Deep thrusts.`
+
+Once you're happy with the description, click `Save` to store it.
+
+> **Storage location:** Custom descriptions are stored per animation pack name. You'll find them at:
+> ```
+> SKSE/Plugins/OStimNet/animationDescriptions/YourPackName.json
+> ```
+> If you're an MO2 user and this is the first custom description you've written for a given pack, the file will appear in your **MO2 overwrite folder** at that same path. Otherwise, it will already exist directly inside the **OStimNet** mod folder at that same path.

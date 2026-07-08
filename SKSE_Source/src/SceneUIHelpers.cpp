@@ -141,7 +141,7 @@ namespace OStimNavigator {
                     ImGuiMCP::ImGui::CalcTextSize(&ellipsisSize, ellipsis, nullptr, false, -1.0f);
 
                     // Binary search for the right truncation point
-                    int len = truncated.length();
+                    int len = static_cast<int>(truncated.length());
                     while (len > 0) {
                         std::string testStr = truncated.substr(0, len) + ellipsis;
                         ImGuiMCP::ImVec2 testSize;

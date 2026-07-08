@@ -1,0 +1,23 @@
+{
+  "pages": [
+    {
+      "name": "OStimNavigator",
+      "description": "OStim Navigator options",
+      "icon": "OStimNavigator/OStimNavigator",
+      "parent": null
+    }
+  ],
+  "options": [
+    {
+      "name": "ShowTable",
+      "page": "OStimNavigator",
+      "states": {
+        "0": {
+          "icon": "OStimNavigator/OStimNavigatorDashboard",
+          "description": "Show dev editor",
+          "function": "TTONav_Options/ShowDevEditor"
+        }
+      }
+    }
+  ]
+}

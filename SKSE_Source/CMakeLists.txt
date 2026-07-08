@@ -14,19 +14,9 @@ project(OStimNavigator VERSION 0.0.1 LANGUAGES CXX)
 #
 # To do this automatically, set the `SKYRIM_FOLDER` environment variable
 # to the path of your Skyrim Special Edition folder
-set(MOD_FOLDER_NAME "OStim Navigator")
-# set(SKYRIM_MODS_FOLDER "C:\\path\\to\\your\\mods\\folder")
-
-# If you're using Mod Organizer 2 or Vortex, you might want this to go inside
-# of your "mods" folder, inside of a subfolder named "<your mod>".
-#
-# To do this automatically, set the `SKYRIM_MODS_FOLDER` environment variable
-# to the path of your "mods" folder
-if(DEFINED ENV{SKYRIM_MODS_FOLDER} AND IS_DIRECTORY "$ENV{SKYRIM_MODS_FOLDER}")
-    set(OUTPUT_FOLDER "$ENV{SKYRIM_MODS_FOLDER}/${MOD_FOLDER_NAME}")
-elseif(DEFINED SKYRIM_MODS_FOLDER AND IS_DIRECTORY "${SKYRIM_MODS_FOLDER}")
-    set(OUTPUT_FOLDER "${SKYRIM_MODS_FOLDER}/${MOD_FOLDER_NAME}")
-endif()
+set(MOD_FOLDER_NAME "OStim Navigator Dev")
+set(SKYRIM_MODS_FOLDER "E:\\Skyrim\\development\\mods")
+set(OUTPUT_FOLDER "${SKYRIM_MODS_FOLDER}/${MOD_FOLDER_NAME}")
 
 set(CommonLibPath "extern/CommonLibSSE-NG")
 set(CommonLibName "CommonLibSSE")
@@ -75,7 +65,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 # Silence Microsoft STL deprecation warnings
-target_compile_definitions(${PROJECT_NAME} PRIVATE _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
+    OSTIMNAVIGATOR_BUILDING
+)
 
 # Workaround for MSBuild 17.14 bug: create props file to override ATL_KeyFile
 if(MSVC)

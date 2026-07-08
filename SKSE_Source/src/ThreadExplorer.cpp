@@ -16,7 +16,7 @@ namespace OStimNavigator {
         namespace ThreadExplorer {
             // Window state
             static bool s_isShown = false;
-            static uint32_t s_selectedThreadID = -1;
+            static uint32_t s_selectedThreadID = ~0u;
             static SceneData* s_currentScene = nullptr;  // Current scene in the thread
             static std::string s_lastSceneID = "";  // Track scene changes for similarity recalculation
             
@@ -243,7 +243,7 @@ namespace OStimNavigator {
 
                 // Track if this is the first render after showing the window
                 static bool s_firstRender = true;
-                static uint32_t s_lastThreadID = -1;
+                static uint32_t s_lastThreadID = ~0u;
 
                 // Reset first render flag when thread changes or window was hidden
                 if (s_lastThreadID != s_selectedThreadID) {

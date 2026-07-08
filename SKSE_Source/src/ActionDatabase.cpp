@@ -1,5 +1,6 @@
 #include "ActionDatabase.h"
 #include "SceneDatabase.h"
+#include "SceneDescriptionData.h"
 #include "StringUtils.h"
 #include "JsonUtils.h"
 #include <nlohmann/json.hpp>
@@ -19,6 +20,8 @@ namespace OStimNavigator {
         m_actions.clear();
         m_aliases.clear();
         m_allTags.clear();
+        m_tagBuckets.clear();
+        m_availableInScenes.clear();
 
         // Path to OStim actions directory
         std::filesystem::path actionsPath = "Data/SKSE/Plugins/OStim/actions";
@@ -27,6 +30,12 @@ namespace OStimNavigator {
             [this](const std::filesystem::path& path) {
                 ParseActionFile(path);
             });
+
+        for (const auto& [type, _] : m_actions) {
+            if (!FindActionPhrase(type)) {
+                SKSE::log::warn("Action '{}' has no phrase in kActionPhrases (and no alias matches either)", type);
+            }
+        }
 
         SKSE::log::info("Loaded {} actions with {} aliases", m_actions.size(), m_aliases.size());
         m_loaded = true;
@@ -69,6 +78,7 @@ namespace OStimNavigator {
         ParseJsonStringArray(j, "tags", [&](const std::string& tag) {
             action.tags.push_back(tag);
             m_allTags.insert(tag);
+            m_tagBuckets[tag].insert(action.type);
         });
     }
 
@@ -162,5 +172,53 @@ namespace OStimNavigator {
 
     std::vector<std::string> ActionDatabase::GetAllTags() const {
         return StringUtils::SetToSortedVector(m_allTags);
+    }
+
+    std::unordered_set<std::string> ActionDatabase::GetActionsWithTag(const std::string& tag) const {
+        std::string lower = StringUtils::ToLowerCopy(tag);
+        auto it = m_tagBuckets.find(lower);
+        if (it != m_tagBuckets.end()) {
+            return it->second;
+        }
+        return {};
+    }
+
+    std::vector<std::string> ActionDatabase::GetAllActionTypes() const {
+        std::vector<std::string> types;
+        types.reserve(m_actions.size());
+        for (const auto& [type, _] : m_actions) {
+            types.push_back(type);
+        }
+        std::sort(types.begin(), types.end());
+        return types;
+    }
+
+    std::vector<std::string> ActionDatabase::GetAvailableActionTypes() const {
+        std::vector<std::string> types(m_availableInScenes.begin(), m_availableInScenes.end());
+        std::sort(types.begin(), types.end());
+        return types;
+    }
+
+    void ActionDatabase::MarkUsedInScene(const std::string& type) {
+        m_availableInScenes.insert(type);
+    }
+
+    bool ActionDatabase::IsAvailableInScene(const std::string& type) const {
+        std::string resolved = ResolveActionType(type);
+        return m_availableInScenes.count(resolved) > 0;
+    }
+
+    const OStimNavigatorAPI::ActionPhrase* ActionDatabase::FindActionPhrase(const std::string& type) const {
+        auto it = kActionPhrases.find(type);
+        if (it != kActionPhrases.end()) return &it->second;
+
+        const ActionData* data = FindAction(type);
+        if (data) {
+            for (const auto& alias : data->aliases) {
+                auto aliasIt = kActionPhrases.find(alias);
+                if (aliasIt != kActionPhrases.end()) return &aliasIt->second;
+            }
+        }
+        return nullptr;
     }
 }

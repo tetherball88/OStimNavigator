@@ -1,0 +1,609 @@
+/* ── wrapper / layout ──────────────────────────────────────────────────── */
+
+.scene-table-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+    height: 100%;
+    padding: 0.15em 0.1em 0;
+}
+
+/* ── toolbar ───────────────────────────────────────────────────────────── */
+
+.scene-table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.65em;
+    flex-wrap: nowrap;
+}
+
+.scene-table-search {
+    flex: 1 1 12em;
+    min-width: 8em;
+}
+
+.scene-table-select {
+    min-width: 10.5em;
+}
+
+.scene-table-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    color: rgba(255, 255, 255, 0.9);
+    min-width: 6.8em;
+}
+
+.scene-table-filter-toggle:hover,
+.scene-table-filter-toggle--active {
+    background: rgba(200, 168, 75, 0.16);
+}
+
+.scene-table-filter-icon {
+    font-size: 0.88em;
+    color: var(--amber-light);
+}
+
+.scene-table-filter-label {
+    color: #f4e6c1;
+}
+
+.scene-table-filter-caret {
+    color: #b6ab91;
+    font-size: 0.95em;
+    line-height: 1;
+}
+
+.scene-table-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    margin-top: -0.05em;
+    padding: 0.78em 1em 0.85em;
+    border: 1px solid rgba(200, 168, 75, 0.12);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.scene-table-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65em;
+    flex-wrap: wrap;
+}
+
+.scene-table-filter-row--compat {
+    gap: 1.2em;
+    padding-top: 0.2em;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.scene-table-filter-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65em;
+    height: 100%;
+}
+
+/* ── compatibility checkboxes ──────────────────────────────────────────── */
+
+.compat-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    font-size: 0.82em;
+    color: rgba(255, 255, 255, 0.72);
+    cursor: pointer;
+    user-select: none;
+}
+
+.compat-check input[type="checkbox"] {
+    accent-color: var(--amber);
+    width: 0.95em;
+    height: 0.95em;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.compat-check:hover {
+    color: var(--amber-light);
+}
+
+/* ── MultiSelectFilter ────────────────────────────────────────────────── */
+
+.msf-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.msf-header {
+    display: inline-flex;
+    align-items: center;
+}
+
+.msf-andor {
+    padding: 0.26em 0.45em;
+    border-radius: 999px 0 0 999px;
+    border: 1px solid transparent;
+    font-size: 0.6em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+}
+
+.msf-andor--or {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.msf-andor--or:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.msf-andor--and {
+    background: rgba(200, 168, 75, 0.16);
+    border-color: var(--amber-dim);
+    color: var(--amber-light);
+}
+
+.msf-andor--and:hover {
+    background: rgba(200, 168, 75, 0.26);
+}
+
+.msf-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    min-width: 8em;
+}
+
+.msf-andor-toggle {
+    border-radius: 0 999px 999px 0 !important;
+    border-left: 0px !important;
+}
+
+.msf-toggle--active {
+    background: rgba(200, 168, 75, 0.14);
+    border-color: var(--amber-dim);
+    color: var(--amber-light);
+}
+
+.msf-label {
+    flex: 1 1 0;
+    text-align: left;
+}
+
+.msf-count {
+    background: rgba(200, 168, 75, 0.25);
+    color: var(--amber-light);
+    border-radius: 1em;
+    font-size: 0.75em;
+    font-weight: 700;
+    padding: 0.05em 0.5em;
+}
+
+.msf-caret {
+    font-size: 0.82em;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.msf-dropdown {
+    position: absolute;
+    top: calc(100% + 3px);
+    left: 0;
+    z-index: 100;
+    background: #1e1c18;
+    border: 1px solid var(--amber-dim);
+    border-radius: 4px;
+    min-width: 14em;
+    max-width: 22em;
+    display: flex;
+    flex-direction: column;
+}
+
+.msf-search {
+    margin: 0.4em 0.5em 0.2em;
+    font-size: 0.82em;
+}
+
+.msf-options {
+    overflow-y: auto;
+    max-height: 18em;
+    padding: 0.3em 0;
+}
+
+.msf-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.32em 0.75em;
+    font-size: 0.83em;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.msf-option:hover {
+    background: rgba(200, 168, 75, 0.1);
+}
+
+.msf-option--checked {
+    color: var(--amber-light);
+    background: rgba(200, 168, 75, 0.06);
+}
+
+.msf-checkbox {
+    accent-color: var(--amber);
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.msf-option-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.msf-empty {
+    display: block;
+    padding: 0.5em 0.75em;
+    font-size: 0.82em;
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+}
+
+.scene-table-clear {
+    background: rgba(200, 168, 75, 0.1);
+    color: #f4e6c1;
+}
+
+.scene-table-clear:hover {
+    background: rgba(200, 168, 75, 0.22);
+    border-color: #f1d28a;
+}
+
+.scene-table-count {
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* ── scrollable table container ────────────────────────────────────────── */
+
+.scene-table-scroll {
+    overflow: auto;
+    flex: 1 1 0;
+}
+
+/* ── table ─────────────────────────────────────────────────────────────── */
+
+.scene-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8em;
+    table-layout: fixed;
+}
+
+.scene-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.scene-table th {
+    height: 2.25em;
+    padding: 0.52em 0.62em;
+    background: #1a1500;
+    border-bottom: 1px solid var(--amber-dim);
+    text-align: left;
+    font-weight: 600;
+    color: var(--amber-light);
+    white-space: nowrap;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* ── column widths ─────────────────────────────────────────────────────── */
+
+.col-warp {
+    width: 2.2em;
+    text-align: center;
+    padding: 0.35em 0.3em !important;
+    white-space: nowrap;
+}
+
+.col-id {
+    width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.col-modpack {
+    width: 22%;
+}
+
+.col-desc {
+    width: 3em;
+    text-align: center;
+    color: var(--amber-light);
+    font-weight: 600;
+}
+
+.col-presets {
+    width: 20%;
+    white-space: nowrap;
+}
+
+/* ── rows ──────────────────────────────────────────────────────────────── */
+
+.scene-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.scene-table tbody tr:hover {
+    background: rgba(200, 168, 75, 0.10);
+}
+
+.scene-table td {
+    padding: 0.42em 0.62em;
+    vertical-align: top;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.row-transition td {
+    opacity: 0.55;
+    font-style: italic;
+}
+
+.row--current td {
+    background-color: #1c1608;
+}
+
+
+.row--current .col-id {
+    font-weight: 600;
+}
+
+.row--pinned td {
+    position: sticky;
+    top: 2.25em;
+    z-index: 1;
+    background: #231a04;
+    /* border-bottom: 1px solid var(--amber); */
+}
+
+.row--pinned .active-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--amber);
+}
+
+.empty-row {
+    text-align: center;
+    padding: 2em !important;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── gender icons ──────────────────────────────────────────────────────── */
+
+.gender-icon {
+    font-size: 1em;
+    margin-right: 1px;
+}
+
+.gender-male {
+    color: #6ab0f5;
+}
+
+.gender-female {
+    color: #f590b0;
+}
+
+.gender-any {
+    color: #b87fd4;
+}
+
+.gender-composition {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    margin-left: 0.4em;
+    font-size: 0.95em;
+    vertical-align: middle;
+    opacity: 0.85;
+}
+
+.col-id-name {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.9em;
+}
+
+.gender-setup-text {
+    font-size: 0.82em;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: monospace;
+}
+
+/* ── pills ─────────────────────────────────────────────────────────────── */
+
+.pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.pill {
+    display: inline-block;
+    padding: 0.18em 0.58em;
+    border-radius: 0.26em;
+    font-size: 0.79em;
+    border: none;
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(200, 168, 75, 0.14);
+    cursor: pointer;
+    white-space: nowrap;
+    max-width: 10em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pill:hover {
+    background: rgba(200, 168, 75, 0.24);
+    color: #fff;
+}
+
+.pill--active {
+    background: rgba(200, 168, 75, 0.30);
+    color: var(--amber-light);
+}
+
+/* ── preset / row-action buttons ──────────────────────────────────────── */
+
+.preset-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.row-action-btn {
+    display: block;
+    width: 100%;
+    padding: 0.26em 0.62em;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-align: center;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.row-action-btn--ostim {
+    background: rgba(200, 168, 75, 0.10);
+    border-color: var(--amber-dim);
+    color: var(--amber);
+}
+
+.row-action-btn--ostim:hover {
+    background: rgba(200, 168, 75, 0.22);
+    border-color: var(--amber);
+    color: var(--amber-light);
+}
+
+.row-action-btn--ostimnet {
+    background: rgba(80, 140, 220, 0.10);
+    border-color: rgba(80, 140, 220, 0.30);
+    color: var(--ostimnet-blue);
+}
+
+.row-action-btn--ostimnet:hover {
+    background: rgba(80, 140, 220, 0.22);
+    border-color: var(--ostimnet-blue);
+    color: #9cc8ff;
+}
+
+.row-action-btn--warp {
+    background: rgba(80, 200, 100, 0.10);
+    border-color: rgba(80, 200, 100, 0.30);
+    color: #6cd98a;
+    padding: 2px 5px;
+    font-size: 0.8em;
+}
+
+.row-action-btn--warp:hover {
+    background: rgba(80, 200, 100, 0.22);
+    border-color: #6cd98a;
+    color: #a8f0bc;
+}
+
+/* ── desc filter toggle ──────────────────────────────────────────────────── */
+
+.desc-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.3em;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.desc-toggle-label {
+    padding: 0.26em 0.45em;
+    font-size: 0.6em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(255, 255, 255, 0.03);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    white-space: nowrap;
+}
+
+.desc-toggle-btn {
+    padding: 0.26em 0.45em;
+    font-size: 0.7em;
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    white-space: nowrap;
+}
+
+.desc-toggle-btn:last-child {
+    border-right: none;
+}
+
+.desc-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.desc-toggle-btn--active {
+    background: rgba(200, 168, 75, 0.18);
+    color: var(--amber-light);
+    font-weight: 600;
+}
+
+/* ── pagination ─────────────────────────────────────────────────────────── */
+
+.scene-table-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    justify-content: center;
+    font-size: 0.85em;
+}
+
+.scene-table-pagination button {
+    padding: 0.3em 0.62em;
+    background: rgba(200, 168, 75, 0.08);
+    border: 1px solid var(--amber-dim);
+    border-radius: 0.26em;
+    color: var(--amber);
+    cursor: pointer;
+}
+
+.scene-table-pagination button:hover:not(:disabled) {
+    background: rgba(200, 168, 75, 0.2);
+}
+
+.scene-table-pagination button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.scene-table-pagination span {
+    color: rgba(255, 255, 255, 0.6);
+    min-width: 4em;
+    text-align: center;
+}

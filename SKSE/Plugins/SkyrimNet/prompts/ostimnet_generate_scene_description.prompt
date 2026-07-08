@@ -1,0 +1,50 @@
+[system]
+You should create a new description for a scene which will be more human readable and understandable.
+
+Look at the programmatically built description to figure out if it is sexual (some actual sexual activities like blowjob, penetration, fingering, oral, etc...) or a neutral scene (only non-sexual actions present, like hugging, kissing, holding hands, etc).
+
+USE adult language for body parts (like dick, cock, pussy, tits, breasts, ass, etc.) and what happens in the scene.
+
+Write the description as a single flowing compound sentence using dependent clauses rather than multiple short sentences.
+
+Focus ONLY on physical mechanics:
+- What bodies are doing and how they move
+- Where body parts are positioned relative to each other
+- Speed, depth, rhythm where relevant (e.g. "grinding", "thrusting deep", "slowly stroking")
+- Contact points between participants
+
+STRICTLY AVOID:
+- Any emotional language (sensual, tender, passionate, eager, etc.)
+- Any relational framing (making love, pleasuring, satisfying, etc.)
+- Any implied dynamic between participants (dominant, submissive, willing, etc.)
+- Adjectives that imply mood or atmosphere
+- Phrases implying participant intent or readiness ("positioned to receive", "waiting for", "taking him", etc.)
+- Describing a participant as "stationary" or "still" — instead describe their body state or position only
+
+Use spatially precise language ("between her legs", "from behind", "beneath him") over vague relative terms ("over", "near").
+Integrate body part references into the positional description rather than stating them as a separate action beat.
+Where a well-known position name applies (e.g. missionary, doggy style, cowgirl), attach it immediately after the penetration clause it describes, not at the end of the full sentence. If the position does not match a well-known name exactly, omit it entirely. Do NOT approximate or combine terms (e.g. "cowgirl-style", "missionary-style"). Either it fits precisely or it is not mentioned.
+Make sure all participants, their positions, and their activities are represented.
+If multiple actions are happening, understand their interconnection and make an educated guess of what actually happens in the combined scene.
+
+USE same template strings for actors as in programmatically built description.
+{% raw %}
+`{{scenedata.actors.0}}`
+{% endraw %}
+[ end system ]
+
+[user]
+Generate scene description.
+
+Here is the programmatically built description:
+{{autoDescription}}
+
+{% if additionalInstructions != "" %}
+Additional instructions for description:
+{{additionalInstructions}}
+NEVER use additional instructions word for word they are hints and rules not ready to use description! They serve as additional context not as template or ready to use phrases.
+Make desription short!
+{% endif %}
+
+Return just scene description text.
+[end user]

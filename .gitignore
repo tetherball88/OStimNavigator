@@ -2,3 +2,6 @@
 /SKSE_Source/build
 /for reference
 /.vscode
+/prisma-src/node_modules
+skyrimse.ppj
+SkyrimSE.code-workspace

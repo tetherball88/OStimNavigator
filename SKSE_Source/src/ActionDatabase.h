@@ -7,6 +7,10 @@
 #include <unordered_set>
 #include <nlohmann/json_fwd.hpp>
 
+namespace OStimNavigatorAPI {
+    struct ActionPhrase;
+}
+
 namespace OStimNavigator {
     
     // Forward declaration
@@ -55,6 +59,24 @@ namespace OStimNavigator {
         // Get all unique tags from all actions
         std::vector<std::string> GetAllTags() const;
 
+        // Get all registered action types (sorted)
+        std::vector<std::string> GetAllActionTypes() const;
+
+        // Get action types that appear in at least one loaded scene (sorted)
+        std::vector<std::string> GetAvailableActionTypes() const;
+
+        // Mark an action type as used in at least one scene (called by SceneDatabase)
+        void MarkUsedInScene(const std::string& type);
+
+        // Returns true if this action type appears in at least one loaded scene
+        bool IsAvailableInScene(const std::string& type) const;
+
+        // Get all action types that have the given tag
+        std::unordered_set<std::string> GetActionsWithTag(const std::string& tag) const;
+
+        // Find ActionPhrase by checking type and aliases
+        const OStimNavigatorAPI::ActionPhrase* FindActionPhrase(const std::string& type) const;
+
     private:
         ActionDatabase() = default;
         ~ActionDatabase() = default;
@@ -73,6 +95,8 @@ namespace OStimNavigator {
         std::unordered_map<std::string, ActionData> m_actions;      // type -> ActionData
         std::unordered_map<std::string, std::string> m_aliases;     // alias -> type
         std::unordered_set<std::string> m_allTags;
+        std::unordered_map<std::string, std::unordered_set<std::string>> m_tagBuckets; // tag -> set of action types
+        std::unordered_set<std::string> m_availableInScenes;         // action types that appear in at least one scene
         bool m_loaded = false;
     };
 }

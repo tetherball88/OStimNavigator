@@ -1,0 +1,174 @@
+/* ── inline description editor ─────────────────────────────────────────── */
+
+.desc-editor {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+}
+
+.desc-editor-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.desc-pane-label {
+    font-size: 0.72em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 0.3em 0.8em;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.desc-generate-btn {
+    font-size: 0.85em;
+    padding: 0.15em 0.65em;
+    background: rgba(200, 168, 75, 0.1);
+    border: 1px solid var(--amber-dim);
+    border-radius: 999px;
+    color: var(--amber-light);
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.desc-generate-btn:hover:not(:disabled) {
+    background: rgba(200, 168, 75, 0.22);
+}
+
+.desc-generate-btn--loading {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.desc-save-status {
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+    margin-left: 0.4em;
+    vertical-align: middle;
+}
+
+.desc-save-status--ok {
+    color: #7dde92;
+    background: rgba(125, 222, 146, 0.12);
+}
+
+.desc-save-status--err {
+    color: #e07d7d;
+    background: rgba(224, 125, 125, 0.12);
+}
+
+.desc-pane-editor {
+    flex: 1 1 0;
+}
+
+/* ── generate mini-modal ──────────────────────────────────────────────────── */
+
+.gen-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    border-radius: 4px;
+}
+
+.gen-modal {
+    background: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 1.2em 1.4em 1em;
+    width: min(420px, 90%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65em;
+}
+
+.gen-modal-title {
+    font-size: 0.85em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--amber-light);
+}
+
+.gen-modal-label {
+    font-size: 0.78em;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.gen-modal-optional {
+    font-weight: 400;
+    opacity: 0.6;
+}
+
+.gen-modal-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #ccc;
+    font-size: 0.85em;
+    padding: 0.5em 0.65em;
+    resize: vertical;
+    outline: none;
+    font-family: inherit;
+    line-height: 1.5;
+    transition: border-color 0.15s;
+}
+
+.gen-modal-textarea:focus {
+    border-color: var(--amber-dim);
+}
+
+.gen-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5em;
+    margin-top: 0.2em;
+}
+
+.desc-generate-btn--primary {
+    background: rgba(200, 168, 75, 0.22);
+    border-color: var(--amber);
+    color: var(--amber-light);
+    font-weight: 600;
+}
+
+.desc-generate-btn--primary:hover:not(:disabled) {
+    background: rgba(200, 168, 75, 0.35);
+}
+
+.desc-editor-divider {
+    height: 2px;
+    background: rgba(200, 168, 75, 0.2);
+    flex-shrink: 0;
+}
+
+/* ── diff decorations ──────────────────────────────────────────────────── */
+
+.diff-word-removed {
+    background: rgba(255, 80, 80, 0.35);
+    border-radius: 2px;
+}
+
+.diff-word-added {
+    background: rgba(80, 200, 100, 0.3);
+    border-radius: 2px;
+}

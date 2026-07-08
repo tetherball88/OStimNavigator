@@ -1,0 +1,13 @@
+:root {
+    --text-scale: max(min(0.85vw, 30px), 24px);
+
+    --amber: #c8a84b;
+    --amber-light: #e8c96a;
+    --amber-dim: rgba(200, 168, 75, 0.35);
+    --amber-glow: rgba(200, 168, 75, 0.10);
+    --amber-border: rgba(200, 168, 75, 0.18);
+
+    --panel-bg: rgba(12, 10, 6, 0.78);
+    --panel-border-subtle: rgba(200, 168, 75, 0.15);
+    --ostimnet-blue: #6aacf5;
+}

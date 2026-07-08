@@ -1,0 +1,205 @@
+/* ── wrapper ────────────────────────────────────────────────────────────── */
+
+.csp-wrapper {
+    border: 1px solid var(--amber-dim);
+    border-radius: 4px;
+    background: rgba(200, 168, 75, 0.04);
+    flex-shrink: 0;
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+
+.csp-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    width: 100%;
+    padding: 0.45em 0.9em;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    border-radius: 4px 4px 0 0;
+}
+
+.csp-header:hover {
+    background: rgba(200, 168, 75, 0.08);
+}
+
+.csp-header-title {
+    font-size: 0.78em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber-light);
+}
+
+.csp-header-id {
+    font-size: 0.82em;
+    color: rgba(255, 255, 255, 0.5);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 0;
+}
+
+.csp-header-caret {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8em;
+    flex-shrink: 0;
+}
+
+/* ── body ────────────────────────────────────────────────────────────────── */
+
+.csp-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45em;
+    padding: 0.5em 0.9em 0.75em;
+    border-top: 1px solid rgba(200, 168, 75, 0.12);
+}
+
+/* ── info row (single line) ──────────────────────────────────────────────── */
+
+.csp-info-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.3em 0.5em;
+    font-size: 0.8em;
+}
+
+.csp-sep {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+/* ── generic row ─────────────────────────────────────────────────────────── */
+
+.csp-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6em;
+    font-size: 0.82em;
+}
+
+/* ── labels / values ─────────────────────────────────────────────────────── */
+
+.csp-label {
+    flex-shrink: 0;
+    font-size: 0.82em;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-top: 0.25em;
+    min-width: 6em;
+}
+
+/* In .csp-info-row, labels are inline */
+.csp-info-row .csp-label {
+    padding-top: 0;
+    min-width: unset;
+}
+
+.csp-value {
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.csp-value--id {
+    color: #ffd966;
+    font-weight: 600;
+}
+
+.csp-value--modpack {
+    color: rgba(200, 168, 75, 0.8);
+}
+
+/* ── pills container ─────────────────────────────────────────────────────── */
+
+.csp-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    flex: 1 1 0;
+}
+
+/* ── pill button ─────────────────────────────────────────────────────────── */
+
+.csp-pill {
+    display: inline-block;
+    padding: 0.15em 0.52em;
+    border-radius: 0.26em;
+    font-size: 0.82em;
+    cursor: pointer;
+    white-space: nowrap;
+    border: none;
+}
+
+.csp-pill--action {
+    background: rgba(80, 180, 255, 0.18);
+    color: rgba(160, 210, 255, 0.9);
+}
+
+.csp-pill--action:hover {
+    background: rgba(80, 180, 255, 0.28);
+    color: #c8e8ff;
+}
+
+.csp-pill--action.csp-pill--active {
+    background: rgba(80, 180, 255, 0.32);
+    color: #d8f0ff;
+}
+
+.csp-pill--tag {
+    background: rgba(200, 168, 75, 0.18);
+    color: rgba(244, 230, 193, 0.85);
+}
+
+.csp-pill--tag:hover {
+    background: rgba(200, 168, 75, 0.28);
+    color: var(--amber-light);
+}
+
+.csp-pill--tag.csp-pill--active {
+    background: rgba(200, 168, 75, 0.32);
+    color: var(--amber-light);
+}
+
+.csp-pill--actor {
+    background: rgba(80, 200, 100, 0.18);
+    color: rgba(160, 240, 160, 0.88);
+}
+
+.csp-pill--actor:hover {
+    background: rgba(80, 200, 100, 0.28);
+    color: #b0f0b0;
+}
+
+.csp-pill--actor.csp-pill--active {
+    background: rgba(80, 200, 100, 0.32);
+    color: #c0ffc0;
+}
+
+/* ── actor slots ──────────────────────────────────────────────────────────── */
+
+.csp-actor-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+    flex: 1 1 0;
+}
+
+.csp-actor-slot {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+}
+
+.csp-actor-slot-label {
+    flex-shrink: 0;
+    font-size: 0.78em;
+    color: rgba(255, 255, 255, 0.3);
+    min-width: 3.5em;
+    padding-top: 0.25em;
+}

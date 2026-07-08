@@ -1,0 +1,214 @@
+@font-face {
+    font-family: 'OStimPrism';
+    src: url('/assets/font/OStimPrism-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OStimPrism';
+    src: url('/assets/font/OStimPrism-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OStimPrism';
+    src: url('/assets/font/OStimPrism-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OStimPrism';
+    src: url('/assets/font/OStimPrism-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+
+}
+
+html {
+    font-size: var(--text-scale);
+    font-family: 'OStimPrism', sans-serif;
+}
+
+body {
+    background: transparent;
+    color: #ffffff;
+}
+
+/* Shared Prism-style surface and control classes. */
+.prism-panel {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    right: 0;
+    top: 0;
+    width: 30vw;
+    min-width: 600px;
+    height: 100vh;
+    border: 0.11em solid var(--panel-border-subtle);
+    border-left: 0.15em solid var(--amber);
+    padding: 0.75em 1em 1em;
+    background: var(--panel-bg);
+}
+
+.navigator-panel {
+    animation: drawerSlideIn 0.22s ease-out;
+}
+
+.prism-control-input,
+.prism-control-select,
+.prism-control-button {
+    background: rgba(10, 10, 14, 0.7);
+    border: 0.1em solid rgba(255, 255, 255, 0.18);
+    border-radius: 0.28em;
+    color: #ffffff;
+    outline: none;
+    letter-spacing: 0.03em;
+    font-size: 0.6em;
+    padding: 0.26em 0.6em;
+    display: flex;
+    align-items: center;
+}
+
+.prism-control-select {
+    cursor: pointer;
+}
+
+.prism-control-select option {
+    background: #1a1a1a;
+    color: #ffffff;
+}
+
+.prism-control-button {
+    cursor: pointer;
+    white-space: nowrap;
+    /* text-transform: uppercase; */
+    letter-spacing: 0.05em;
+    border-radius: 999px;
+}
+
+.prism-control-input:focus,
+.prism-control-select:focus,
+.prism-control-button:hover,
+.prism-control-button:focus-visible {
+    border-color: #f1d28a;
+    /* outline is GPU-composited and avoids the paint stall that box-shadow causes
+       when the CEF overlay syncs with the game's DirectX pipeline (HDT-SMP stutter). */
+    outline: 0.1em solid rgba(241, 210, 138, 0.23);
+    outline-offset: 0;
+}
+
+.prism-count-text {
+    font-size: 0.84em;
+    color: #b6ab91;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.ui-container {
+    width: 100vw;
+    height: 100vh;
+}
+
+
+
+@keyframes drawerSlideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.navigator-title {
+    font-size: 1.1em;
+    color: var(--amber);
+    font-weight: 600;
+}
+
+/* ── key-press debug badge ───────────────────────────────────────────────── */
+.key-badge {
+    position: fixed;
+    bottom: 1.5em;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    background: rgba(20, 20, 20, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    padding: 0.4em 0.9em;
+    pointer-events: none;
+    z-index: 9999;
+    animation: keyBadgeFade 1.5s ease-out forwards;
+}
+
+.key-badge-label {
+    font-size: 0.65em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.key-badge-key {
+    font-family: ui-monospace, monospace;
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--amber-light, #f0d080);
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+@keyframes keyBadgeFade {
+    0% {
+        opacity: 1;
+    }
+
+    60% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+.navigator-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5em;
+}
+
+.navigator-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1em;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.navigator-close-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}

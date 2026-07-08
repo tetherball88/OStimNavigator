@@ -24,6 +24,7 @@ namespace OStimNavigator {
     
     struct SceneData {
         std::string id;                         // Scene ID (filename without .json)
+        std::filesystem::path filePath;         // Absolute path to the source .json file
         std::string name;                       // Display name
         std::string modpack;                    // Modpack name
         uint32_t actorCount = 0;                // Number of actors
@@ -37,6 +38,7 @@ namespace OStimNavigator {
         bool isTransition = false;              // Is this a transition scene
         std::string destination;                // Transition destination (if transition)
         bool noRandomSelection = false;         // If true, not suitable for auto mode
+        std::string firstSpeedAnimation;        // First speed animation name
     };
 
     class SceneDatabase {
@@ -49,12 +51,28 @@ namespace OStimNavigator {
         // Load all scenes from Data/SKSE/Plugins/OStim/scenes/
         void LoadScenes();
 
+        // Re-parse a single scene file from disk and update the in-memory cache.
+        // Call this after saving edits to a scene JSON so that subsequent queries
+        // (e.g. BuildSceneDescription) reflect the new data immediately.
+        void ReloadScene(const std::string& id);
+
+        // Update the in-memory cache for a single scene using content that is
+        // already in memory (e.g. the string that was just written to disk).
+        // Skips the second disk read that ReloadScene would otherwise perform,
+        // and also skips the OStimNet metadata re-injection (already done at
+        // initial load). Must be called on the game thread.
+        void ReloadSceneFromContent(const std::string& id, const std::string& content,
+                                    const std::filesystem::path& filePath);
+
         // Query functions
         SceneData* GetSceneByID(const std::string& id);
         std::vector<SceneData*> GetAllScenes();
         std::vector<SceneData*> GetScenesByActorCount(uint32_t actorCount);
         std::vector<SceneData*> GetScenesByTag(const std::string& tag);
         std::vector<SceneData*> SearchScenesByName(const std::string& searchTerm);
+        
+        // Find an OStim scene ID that uses the given animation name
+        std::string FindOStimSceneIdByAnimation(const std::string& animationName) const;
         
         // Stats
         size_t GetSceneCount() const { return m_scenes.size(); }
@@ -68,6 +86,12 @@ namespace OStimNavigator {
         
         // Get all unique actor tags from all scenes
         std::vector<std::string> GetAllActorTags() const;
+
+        // Get all position strings that appear in at least one scene (sorted)
+        std::vector<std::string> GetAllPositions() const;
+
+        // Find the filesystem path for a scene by ID (empty path if not found)
+        std::filesystem::path FindSceneFilePath(const std::string& id) const;
 
     private:
         SceneDatabase() = default;
@@ -94,6 +118,8 @@ namespace OStimNavigator {
         std::unordered_set<std::string> m_allTags;
         std::unordered_set<std::string> m_allActions;
         std::unordered_set<std::string> m_allActorTags;
+        std::unordered_set<std::string> m_allPositions;
+        std::unordered_map<std::string, std::string> m_animationToOStimSceneId;
         bool m_loaded = false;
     };
 }

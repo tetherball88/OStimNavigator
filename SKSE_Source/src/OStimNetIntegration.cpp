@@ -1,6 +1,8 @@
 #include "OStimNetIntegration.h"
+#include "OStimIntegration.h"
 #include "JsonUtils.h"
 #include "SceneDatabase.h"
+#include "OStimNetMetaData.h"
 #include "ActionDatabase.h"
 #include "FurnitureDatabase.h"
 #include "StringUtils.h"
@@ -144,7 +146,7 @@ namespace OStimNavigator {
             nlohmann::json descriptions;
             if (std::filesystem::exists(targetFile)) {
                 try {
-                    std::ifstream file(targetFile);
+                    std::ifstream file(targetFile, std::ios::binary);
                     if (file.is_open()) {
                         file >> descriptions;
                         file.close();
@@ -176,7 +178,7 @@ namespace OStimNavigator {
 
             // Save back to file
             try {
-                std::ofstream file(targetFile);
+                std::ofstream file(targetFile, std::ios::binary);
                 if (file.is_open()) {
                     file << sortedJson.dump(4);  // Pretty print with 4 spaces
                     file.close();
@@ -189,6 +191,9 @@ namespace OStimNavigator {
                     desc.originalId = sceneId;  // Preserve the original case from scene
                     desc.description = description;
                     desc.fileName = targetFileName;
+
+                    // Update OStimNetMetaData in-memory cache
+                    OStimNetMetaData::GetSingleton().UpdateCachedDescription(sceneId, description, targetFile);
                 } else {
                     SKSE::log::error("Failed to open descriptions file for writing: {}", targetFile.string());
                 }
@@ -375,10 +380,8 @@ namespace OStimNavigator {
 
                 // Apply description filter
                 if (s_descriptionFilter != 0) {
-                    std::string sceneIdLowerDesc = scene->id;
-                    StringUtils::ToLower(sceneIdLowerDesc);
-                    auto descIt = s_animationDescriptions.find(sceneIdLowerDesc);
-                    bool hasDescription = (descIt != s_animationDescriptions.end() && !descIt->second.description.empty());
+                    auto* effectiveDesc = OStimNetMetaData::GetSingleton().GetEffectiveDescription(scene->id);
+                    bool hasDescription = (effectiveDesc != nullptr && !effectiveDesc->description.empty());
 
                     if (s_descriptionFilter == 1 && !hasDescription) {
                         continue; // Filter: only with description
@@ -459,15 +462,24 @@ namespace OStimNavigator {
 
             // Description Icon Indicator
             ImGuiMCP::ImGui::TableSetColumnIndex(7);
-            std::string sceneIdLower = scene->id;
-            StringUtils::ToLower(sceneIdLower);
-            auto descIt = s_animationDescriptions.find(sceneIdLower);
-            const AnimationDescription* desc = (descIt != s_animationDescriptions.end() && !descIt->second.description.empty()) ? &descIt->second : nullptr;
+            
+            auto* directDesc = OStimNetMetaData::GetSingleton().GetDescription(scene->id);
+            auto* effectiveDesc = OStimNetMetaData::GetSingleton().GetEffectiveDescription(scene->id);
+            
+            bool hasDescription = (effectiveDesc != nullptr && !effectiveDesc->description.empty());
+            bool isInherited = hasDescription && (directDesc == nullptr);
+            std::string descText = hasDescription ? effectiveDesc->description : "";
+            std::string descFile = hasDescription ? effectiveDesc->sourceFilePath.filename().string() : "";
+
             FontAwesome::PushSolid();
-            if (desc != nullptr) {
+            if (hasDescription) {
                 ImGuiMCP::ImGui::TextColored(s_greenButtonColor, "%s", FontAwesome::UnicodeToUtf8(0xf15c).c_str());
                 if (ImGuiMCP::ImGui::IsItemHovered()) {
-                    ImGuiMCP::ImGui::SetTooltip("Has description");
+                    if (isInherited) {
+                        ImGuiMCP::ImGui::SetTooltip("Has description (inherited from OStim)");
+                    } else {
+                        ImGuiMCP::ImGui::SetTooltip("Has description");
+                    }
                 }
             } else {
                 ImGuiMCP::ImGui::TextDisabled("%s", FontAwesome::UnicodeToUtf8(0xf15c).c_str());
@@ -484,9 +496,13 @@ namespace OStimNavigator {
                 s_editorScene = scene;
                 s_editorWindowOpen = true;
                 // Load existing description if available
-                if (desc != nullptr) {
-                    strncpy_s(s_editorDescriptionBuffer, desc->description.c_str(), sizeof(s_editorDescriptionBuffer) - 1);
-                    s_editorSelectedFile = desc->fileName;
+                if (hasDescription) {
+                    strncpy_s(s_editorDescriptionBuffer, descText.c_str(), sizeof(s_editorDescriptionBuffer) - 1);
+                    if (isInherited) {
+                        s_editorSelectedFile = scene->modpack + ".json";
+                    } else {
+                        s_editorSelectedFile = descFile;
+                    }
                 } else {
                     s_editorDescriptionBuffer[0] = '\0';
                     s_editorSelectedFile = scene->modpack + ".json";
@@ -925,6 +941,16 @@ namespace OStimNavigator {
                     ImGuiMCP::ImGui::SetWindowFontScale(1.2f);
                     ImGuiMCP::ImGui::Text("Description:");
                     ImGuiMCP::ImGui::SetWindowFontScale(1.0f);
+
+                    // Check if description is inherited and display indicator
+                    auto* directDesc = OStimNetMetaData::GetSingleton().GetDescription(s_editorScene->id);
+                    if (!directDesc || directDesc->description.empty()) {
+                        auto* effectiveDesc = OStimNetMetaData::GetSingleton().GetEffectiveDescription(s_editorScene->id);
+                        if (effectiveDesc != nullptr && !effectiveDesc->description.empty()) {
+                            ImGuiMCP::ImGui::SameLine();
+                            ImGuiMCP::ImGui::TextColored(s_greenButtonColor, "(Inherited from %s)", effectiveDesc->sourceFilePath.filename().string().c_str());
+                        }
+                    }
                     ImGuiMCP::ImGui::Spacing();
 
                     // File selector
@@ -1006,6 +1032,19 @@ namespace OStimNavigator {
             // Apply filters on first render
             static bool s_firstRender = true;
             if (s_firstRender) {
+                auto* threadInt = OStimIntegration::GetSingleton().GetThreadInterface();
+                if (threadInt) {
+                    uint32_t threadID = threadInt->GetPlayerThreadID();
+                    if (threadID != 0 && threadInt->IsThreadValid(threadID)) {
+                        const char* sceneID = threadInt->GetCurrentSceneID(threadID);
+                        if (sceneID) {
+                            auto* scene = SceneDatabase::GetSingleton().GetSceneByID(sceneID);
+                            if (scene && !scene->furnitureType.empty()) {
+                                s_selectedFurniture.insert(scene->furnitureType);
+                            }
+                        }
+                    }
+                }
                 ApplyFilters();
                 s_firstRender = false;
             }

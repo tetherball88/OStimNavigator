@@ -180,7 +180,7 @@ namespace OStimNavigator {
         }
 
         void Register() {
-            SKSE::log::info("UI::Register() called");
+            SKSE::log::debug("UI::Register() called");
 
             if (!SKSEMenuFramework::IsInstalled()) {
                 SKSE::log::warn("SKSEMenuFramework is NOT installed (file not found) - menu will not be registered");
@@ -195,24 +195,21 @@ namespace OStimNavigator {
                 return;
             }
 
-            SKSE::log::info("SKSEMenuFramework module handle: {}", reinterpret_cast<void*>(moduleHandle));
-            SKSE::log::info("SKSEMenuFramework is installed and loaded, registering menu...");
+            SKSE::log::debug("SKSEMenuFramework module handle: {}", reinterpret_cast<void*>(moduleHandle));
 
             SKSEMenuFramework::SetSection("OStim Navigator");
-            SKSE::log::info("Set section to 'OStim Navigator'");
-
             SKSEMenuFramework::AddSectionItem("Active Threads", ActiveThreads::Render);
-            SKSE::log::info("Added section item 'Active Threads'");
 
             // Only add OStimNet page if the plugin is available
             if (OStimNetIntegration::IsOStimNetAvailable()) {
                 SKSEMenuFramework::AddSectionItem("OStimNet", OStimNetIntegration::Render);
-                SKSE::log::info("Added section item 'OStimNet' (OStimNet plugin available)");
+                SKSE::log::debug("Added section item 'OStimNet' (OStimNet plugin available)");
             } else {
-                SKSE::log::info("OStimNet plugin not available, skipping OStimNet section");
+                SKSE::log::debug("OStimNet plugin not available, skipping OStimNet section");
             }
 
-            SKSE::log::info("UI::Register() completed successfully");
+            SKSE::log::info("UI registered successfully (SKSEMenuFramework handle: {})",
+                reinterpret_cast<void*>(moduleHandle));
         }
     }
 }

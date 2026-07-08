@@ -1,0 +1,91 @@
+{
+    "name": "Anubs FFM Femdom",
+    "modpack": "AnubsAnimations",
+    "length": 2,
+    "navigations": [
+        {
+            "destination": "AnubsFfmfemdom-4",
+            "description": "Next(climax)",
+            "icon": "OStim/symbols/climax"
+        },
+        {
+            "destination": "AnubsFfmfemdom-2",
+            "description": "Back",
+            "icon": "OStim/symbols/previous"
+        },
+        {
+            "destination": "AnubsDomFfmHub",
+            "description": "Return",
+            "icon": "OStim/symbols/return"
+        }
+    ],
+    "speeds": [
+        {
+            "animation": "AnubsFfmfemdom_3"
+        }
+    ],
+    "actors": [
+        {
+            "intendedSex": "male",
+            "sosBend": 0,
+            "scale": 1,
+            "feetOnGround": false,
+            "tags": [
+                "lyingback"
+            ],
+            "autoTransitions": {
+                "climax": "AnubsFfmfemdom-4"
+            }
+        },
+        {
+            "intendedSex": "female",
+            "scale": 1,
+            "feetOnGround": false,
+            "tags": [
+                "facingaway",
+                "kneeling"
+            ]
+        },
+        {
+            "intendedSex": "female",
+            "scale": 1,
+            "feetOnGround": false,
+            "tags": [
+                "facingaway",
+                "kneeling"
+            ],
+            "autoTransitions": {
+                "climax": "AnubsFfmfemdom-4"
+            }
+        }
+    ],
+    "actions": [
+        {
+            "type": "lickingvagina",
+            "actor": 0,
+            "target": 1,
+            "performer": 1
+        },
+        {
+            "type": "vaginalsex",
+            "actor": 0,
+            "target": 2,
+            "performer": 2
+        },
+        {
+            "type": "holdinghead",
+            "actor": 1,
+            "target": 0
+        },
+        {
+            "type": "rubbingclitoris",
+            "actor": 2,
+            "target": 2
+        }
+    ],
+    "tags": [
+        "femdom",
+        "reversecowgirl",
+        "facesitting"
+    ]
+}
