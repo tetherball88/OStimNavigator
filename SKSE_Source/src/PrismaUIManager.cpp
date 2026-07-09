@@ -557,27 +557,40 @@ namespace OStimNavigator {
                     SceneDatabase::GetSingleton().ReloadSceneFromContent(sceneId, content, filePath);
 
                     // Hot-reload just this scene on OStim's side so the change takes
-                    // effect immediately. DispatchStaticCall can crash inside Skyrim's
-                    // own VM code if the "OData" class isn't registered yet (returns
-                    // false and may null-deref internally), so guard carefully.
+                    // effect immediately. DispatchStaticCall crashes with a native
+                    // access violation when the target function isn't registered —
+                    // OData is always present, but ReloadScene only exists in OStim's
+                    // hot-reload extension. Check the function actually exists on the
+                    // type before dispatching; TypeIsValid alone is not enough.
                     auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
                     if (vm) {
-                        auto* args = RE::MakeFunctionArguments(RE::BSFixedString(sceneId.c_str()));
-                        RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback =
-                            RE::make_smart<NoOpCallback>();
-                        bool dispatched = false;
-                        try {
-                            dispatched = vm->DispatchStaticCall("OData", "ReloadScene", args, callback);
-                        } catch (const std::exception& e) {
-                            SKSE::log::warn("OStim Navigator: OData.ReloadScene exception: {}", e.what());
-                        } catch (...) {
-                            SKSE::log::warn("OStim Navigator: OData.ReloadScene unknown exception");
+                        // Look up the OData type and scan its static function list.
+                        bool hasReloadScene = false;
+                        RE::BSTSmartPointer<RE::BSScript::ObjectTypeInfo> typeInfo;
+                        if (vm->GetScriptObjectType1("OData", typeInfo) && typeInfo) {
+                            auto* funcIter = typeInfo->GetGlobalFuncIter();
+                            uint32_t funcCount = typeInfo->GetNumGlobalFuncs();
+                            for (uint32_t i = 0; i < funcCount; ++i) {
+                                if (funcIter[i].func && funcIter[i].func->GetName() == "ReloadScene") {
+                                    hasReloadScene = true;
+                                    break;
+                                }
+                            }
                         }
-                        delete args;
-                        if (dispatched) {
-                            SKSE::log::info("OStim Navigator: triggered OData.ReloadScene('{}')", sceneId);
+
+                        if (hasReloadScene) {
+                            auto* args = RE::MakeFunctionArguments(RE::BSFixedString(sceneId.c_str()));
+                            RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback =
+                                RE::make_smart<NoOpCallback>();
+                            bool dispatched = vm->DispatchStaticCall("OData", "ReloadScene", args, callback);
+                            delete args;
+                            if (dispatched) {
+                                SKSE::log::info("OStim Navigator: triggered OData.ReloadScene('{}')", sceneId);
+                            } else {
+                                SKSE::log::warn("OStim Navigator: OData.ReloadScene dispatch failed for '{}'", sceneId);
+                            }
                         } else {
-                            SKSE::log::warn("OStim Navigator: OData.ReloadScene dispatch failed for '{}' (class not registered?)", sceneId);
+                            SKSE::log::info("OStim Navigator: skipping OData.ReloadScene for '{}' — function not registered (hot reload unavailable)", sceneId);
                         }
                     }
                 });
