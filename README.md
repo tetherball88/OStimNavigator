@@ -6,6 +6,17 @@ A powerful SKSE plugin for **Skyrim** that provides an advanced in-game interfac
 
 ---
 
+## Requirements
+
+| Mod | Required | Notes |
+|---|---|---|
+| [OStim](https://www.nexusmods.com/skyrimspecialedition/mods/98163) | ✅ Required | Version **v7.4c** or higher |
+| [Prism UI](https://www.nexusmods.com/skyrimspecialedition/mods/148718) | ✅ Required | Powers the new in-game scene editor |
+| [OStimNet](https://github.com/tetherball88/OStimNet/releases/latest) | ✅ Required | Used for generating scene descriptions |
+| [SKSE Menu Framework](https://www.nexusmods.com/skyrimspecialedition/mods/120352) | ⚠️ Optional | Powers the thread manager UI via SKSE Menu Framework. **Deprecated** — still functional but will not receive future updates |
+
+---
+
 ## New Prisma UI GUI for Modders
 
 ![OStim Navigator Demo](./docs/navigator_65.gif)
