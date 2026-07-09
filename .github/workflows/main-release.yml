@@ -26,7 +26,10 @@ jobs:
           TAG="${{ github.ref_name }}"
           # quote paths in case
           zip -r "out/OStimNavigator_${TAG}.zip" \
+            Interface/ \
             SKSE/ \
+            Scripts/ \
+            PrismaUI/ \
             -x ".github/*"
 
       - name: Create GitHub Release
