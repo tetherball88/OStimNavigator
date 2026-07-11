@@ -286,6 +286,46 @@ inline const char* (*ONavGetFurnitureTypesWithSexScenes)(uint32_t minSceneCount,
 inline bool (*ONavSceneHasActorWithTag)(const char* sceneId, const char* tag) = nullptr;
 #endif
 
+/**
+ * Check whether a scene requires furniture.
+ *
+ * @param sceneId  Scene ID string (e.g. "SomeModpack|SomeScene"). Must not be null.
+ *
+ * @return true if the scene's furnitureType is non-empty (i.e. a piece of furniture is needed);
+ *         false if the scene has no furniture requirement or the scene is unknown.
+ *
+ * @note Not thread-safe. Call only from the SKSE game thread.
+ */
+#ifndef OSTIMNAVIGATOR_BUILDING
+inline bool (*ONavSceneHasFurniture)(const char* sceneId) = nullptr;
+#endif
+
+/**
+ * Return the highest sexual encounter phase rank present in a scene's actions.
+ *
+ * Phase ranks:
+ *   1 = Foreplay  — actions tagged "penilestimulation", "fingering", "toying", or "clitoralstimulation"
+ *                   (nipple actions such as "lickingnipple"/"suckingnipple" are reclassified here
+ *                    even though they carry the "oral" tag)
+ *   2 = Oral      — actions tagged "oral" (excluding the nipple reclassifications above)
+ *   3 = Sex       — actions tagged "intercourse"
+ *  -1 = No phase-relevant actions found, or scene is unknown
+ *
+ * Action types stored in scenes are always canonical (aliases are resolved at load time),
+ * so alias handling is not required by callers.
+ *
+ * @param sceneId  Scene ID string (e.g. "SomeModpack|SomeScene"). Must not be null.
+ *
+ * @return Highest rank found (1, 2, or 3), or -1.
+ *         These values correspond directly to the OStimNet SexualPhase enum
+ *         (Foreplay=1, Oral=2, Sex=3).
+ *
+ * @note Not thread-safe. Call only from the SKSE game thread.
+ */
+#ifndef OSTIMNAVIGATOR_BUILDING
+inline int (*ONavGetScenePhaseRank)(const char* sceneId) = nullptr;
+#endif
+
 // =============================================================================
 // Initialization
 // =============================================================================
@@ -348,6 +388,12 @@ inline bool ONavFindFunctions() {
 
     ONavSceneHasActorWithTag = reinterpret_cast<bool(*)(const char*, const char*)>(
         GetProcAddress(hDLL, "ONavSceneHasActorWithTag"));
+
+    ONavSceneHasFurniture = reinterpret_cast<bool(*)(const char*)>(
+        GetProcAddress(hDLL, "ONavSceneHasFurniture"));
+
+    ONavGetScenePhaseRank = reinterpret_cast<int(*)(const char*)>(
+        GetProcAddress(hDLL, "ONavGetScenePhaseRank"));
 
     return ONavBuildSceneDescription != nullptr;
 }

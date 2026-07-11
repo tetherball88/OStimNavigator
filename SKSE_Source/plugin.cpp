@@ -114,13 +114,13 @@ SKSEPluginLoad(const LoadInterface* skse) {
                         OStimNavigator::OStimIntegration::GetSingleton().Initialize(
                             SKSE::PluginDeclaration::GetSingleton()->GetName().data(),
                             SKSE::PluginDeclaration::GetSingleton()->GetVersion());
-                        
+
                         // Load furniture database (must be loaded before scenes for furniture validation)
                         OStimNavigator::FurnitureDatabase::GetSingleton().LoadFurnitureTypes();
-                        
+
                         // Load action database (must be loaded before scenes)
                         OStimNavigator::ActionDatabase::GetSingleton().LoadActions();
-                        
+
                         // Load actor properties database
                         OStimNavigator::ActorPropertiesDatabase::GetSingleton().LoadActorProperties();
 
@@ -527,6 +527,17 @@ const char* ONavGetSceneActions(const char* sceneId) {
     return s_result.c_str();
 }
 
+// Returns true if the scene requires furniture (i.e. its furnitureType field is non-empty).
+// @param sceneId  Scene ID string (e.g. "SomeModpack|SomeScene"). Must not be null.
+// @return true if the scene has a non-empty furnitureType; false if no furniture or scene unknown.
+extern "C" __declspec(dllexport)
+bool ONavSceneHasFurniture(const char* sceneId) {
+    if (!sceneId || sceneId[0] == '\0') return false;
+    const auto* scene = OStimNavigator::SceneDatabase::GetSingleton().GetSceneByID(sceneId);
+    if (!scene) return false;
+    return !scene->furnitureType.empty();
+}
+
 // Returns true if any actor position in the scene has the given tag.
 // @param sceneId  Scene ID string (e.g. "SomeModpack|SomeScene"). Must not be null.
 // @param tag      Actor-position tag to check for (e.g. "climaxing"). Must not be null.
@@ -541,4 +552,61 @@ bool ONavSceneHasActorWithTag(const char* sceneId, const char* tag) {
             return true;
     }
     return false;
+}
+
+// Returns the highest sexual encounter phase rank present in the scene's actions.
+//
+// Phase ranks:
+//   1 = Foreplay  — actions tagged "penilestimulation", "fingering", "toying", or "clitoralstimulation"
+//   2 = Oral      — actions tagged "oral"
+//   3 = Sex       — actions tagged "intercourse"
+//  -1 = No phase-relevant actions found (or scene unknown)
+//
+// Tag checks use the ActionDatabase so aliases are transparently resolved at scene load time.
+// The scene itself stores canonical action types, so no alias resolution is needed at query time.
+//
+// @param sceneId  Scene ID string. Must not be null.
+// @return Highest rank (1/2/3) found in the scene, or -1.
+// @note Not thread-safe. Call only from the SKSE game thread.
+extern "C" __declspec(dllexport)
+int ONavGetScenePhaseRank(const char* sceneId) {
+    if (!sceneId || sceneId[0] == '\0') return -1;
+    const auto* scene = OStimNavigator::SceneDatabase::GetSingleton().GetSceneByID(sceneId);
+    if (!scene) return -1;
+
+    auto& actionDB = OStimNavigator::ActionDatabase::GetSingleton();
+
+    // Canonical action types that carry the "oral" tag but belong to the Foreplay phase.
+    // Aliases are resolved to canonical types at scene load time, so alias handling is not needed here.
+    static const std::unordered_set<std::string> kOralButForeplay = {
+        "lickingnipple",    // nipple licking
+        "suckingnipple",    // nipple sucking
+    };
+
+    int maxRank = -1;
+
+    for (const auto& action : scene->actions) {
+        if (action.type.empty()) continue;
+
+        int rank = -1;
+        if (actionDB.ActionHasTag(action.type, "intercourse")) {
+            rank = 3;
+        } else if (actionDB.ActionHasTag(action.type, "oral") &&
+                   !kOralButForeplay.count(action.type)) {
+            rank = 2;
+        } else if (actionDB.ActionHasTag(action.type, "penilestimulation") ||
+                   actionDB.ActionHasTag(action.type, "fingering") ||
+                   actionDB.ActionHasTag(action.type, "toying") ||
+                   actionDB.ActionHasTag(action.type, "clitoralstimulation") ||
+                   kOralButForeplay.count(action.type)) {
+            rank = 1;
+        }
+
+        if (rank > maxRank) {
+            maxRank = rank;
+            if (maxRank == 3) break;  // Can't go higher; short-circuit
+        }
+    }
+
+    return maxRank;
 }
