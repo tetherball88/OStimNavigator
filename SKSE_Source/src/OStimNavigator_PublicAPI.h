@@ -230,6 +230,7 @@ inline const char* (*ONavGetAllActions)(const char* tag) = nullptr;
  */
 #ifndef OSTIMNAVIGATOR_BUILDING
 inline const char* (*ONavGetSceneActions)(const char* sceneId) = nullptr;
+inline const char* (*ONavGetSceneActionsDetailed)(const char* sceneId) = nullptr;
 #endif
 
 /**
@@ -326,6 +327,23 @@ inline bool (*ONavSceneHasFurniture)(const char* sceneId) = nullptr;
 inline int (*ONavGetScenePhaseRank)(const char* sceneId) = nullptr;
 #endif
 
+/**
+ * Searches and returns the best matching pullout scene for the given active scene.
+ * Excludes vaginalsex/intercourse, strictly matches furniture, and scores based on
+ * position tiers and action tiers for the giver and receiver.
+ *
+ * @param sceneId      Current active scene ID. Must not be null.
+ * @param threadId     OStim thread ID.
+ * @param giverPos     Slot index of the vaginal giver (or -1 to auto-infer).
+ * @param receiverPos  Slot index of the vaginal receiver (or -1 to auto-infer).
+ * @return Pointer to static null-terminated buffer inside OStimNavigator.dll, or "" if none found.
+ *         COPY IT IMMEDIATELY — it is overwritten on the next call.
+ * @note Not thread-safe. Call only from the SKSE game thread.
+ */
+#ifndef OSTIMNAVIGATOR_BUILDING
+inline const char* (*ONavFindPulloutScene)(const char* sceneId, uint32_t threadId, int giverPos, int receiverPos) = nullptr;
+#endif
+
 // =============================================================================
 // Initialization
 // =============================================================================
@@ -380,6 +398,9 @@ inline bool ONavFindFunctions() {
     ONavGetSceneActions = reinterpret_cast<const char*(*)(const char*)>(
         GetProcAddress(hDLL, "ONavGetSceneActions"));
 
+    ONavGetSceneActionsDetailed = reinterpret_cast<const char*(*)(const char*)>(
+        GetProcAddress(hDLL, "ONavGetSceneActionsDetailed"));
+
     ONavGetSceneTags = reinterpret_cast<const char*(*)(const char*)>(
         GetProcAddress(hDLL, "ONavGetSceneTags"));
 
@@ -394,6 +415,9 @@ inline bool ONavFindFunctions() {
 
     ONavGetScenePhaseRank = reinterpret_cast<int(*)(const char*)>(
         GetProcAddress(hDLL, "ONavGetScenePhaseRank"));
+
+    ONavFindPulloutScene = reinterpret_cast<const char*(*)(const char*, uint32_t, int, int)>(
+        GetProcAddress(hDLL, "ONavFindPulloutScene"));
 
     return ONavBuildSceneDescription != nullptr;
 }

@@ -19,6 +19,7 @@
 #include "src/OStimNetIntegration.h"
 #include "src/KeyboardInputBlocker.h"
 #include "src/Settings.h"
+#include "src/PulloutSceneSearch.h"
 
 using namespace SKSE;
 
@@ -527,6 +528,33 @@ const char* ONavGetSceneActions(const char* sceneId) {
     return s_result.c_str();
 }
 
+extern "C" __declspec(dllexport)
+const char* ONavGetSceneActionsDetailed(const char* sceneId) {
+    if (!sceneId || sceneId[0] == '\0') {
+        static const char* s_empty = "[]";
+        return s_empty;
+    }
+    auto* scene = OStimNavigator::SceneDatabase::GetSingleton().GetSceneByID(sceneId);
+    if (!scene) {
+        static const char* s_empty = "[]";
+        return s_empty;
+    }
+    nlohmann::json j = nlohmann::json::array();
+    for (const auto& action : scene->actions) {
+        if (!action.type.empty()) {
+            nlohmann::json item;
+            item["type"] = action.type;
+            item["actor"] = action.actor;
+            item["target"] = action.target;
+            item["performer"] = action.performer;
+            j.push_back(item);
+        }
+    }
+    static std::string s_result;
+    s_result = j.dump();
+    return s_result.c_str();
+}
+
 // Returns true if the scene requires furniture (i.e. its furnitureType field is non-empty).
 // @param sceneId  Scene ID string (e.g. "SomeModpack|SomeScene"). Must not be null.
 // @return true if the scene has a non-empty furnitureType; false if no furniture or scene unknown.
@@ -609,4 +637,20 @@ int ONavGetScenePhaseRank(const char* sceneId) {
     }
 
     return maxRank;
+}
+
+// Searches and returns the best matching pullout scene for the given active scene.
+// Algorithm v2: excludes penetrative intercourse, strictly matches furniture,
+// scores based on combined position tier distance and action tiers (A-D) for giver & receiver.
+// Returns "" if no suitable pullout scene is found.
+extern "C" __declspec(dllexport)
+const char* ONavFindPulloutScene(const char* sceneId, uint32_t threadId, int giverPos, int receiverPos) {
+    if (!sceneId || sceneId[0] == '\0') {
+        static const char* s_empty = "";
+        return s_empty;
+    }
+    std::string found = OStimNavigator::PulloutSceneSearch::FindPulloutScene(sceneId, threadId, giverPos, receiverPos);
+    static std::string s_result;
+    s_result = std::move(found);
+    return s_result.c_str();
 }
