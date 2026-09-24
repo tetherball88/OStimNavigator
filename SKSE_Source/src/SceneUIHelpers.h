@@ -4,7 +4,7 @@
 #include "SceneDatabase.h"
 #include "ActionDatabase.h"
 #include "OStimIntegration.h"
-#include <SKSEMenuFramework.h>
+#include "SKSEMenuFrameworkCompat.h"
 #include <string>
 #include <vector>
 #include <unordered_set>

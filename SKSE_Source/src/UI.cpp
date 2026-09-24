@@ -2,7 +2,7 @@
 #include "ThreadExplorer.h"
 #include "OStimIntegration.h"
 #include "OStimNetIntegration.h"
-#include <SKSEMenuFramework.h>
+#include "SKSEMenuFrameworkCompat.h"
 
 namespace OStimNavigator {
     namespace UI {

@@ -7,7 +7,6 @@
 #include "FurnitureDatabase.h"
 #include "StringUtils.h"
 #include "SceneUIHelpers.h"
-#include <SKSEMenuFramework.h>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>

@@ -8,7 +8,6 @@
 #include "SceneFilter.h"
 #include "StringUtils.h"
 #include "SceneUIHelpers.h"
-#include <SKSEMenuFramework.h>
 #include <algorithm>
 
 namespace OStimNavigator {
