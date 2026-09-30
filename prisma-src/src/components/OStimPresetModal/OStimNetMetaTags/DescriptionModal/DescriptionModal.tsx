@@ -4,6 +4,7 @@ import type { editor } from 'monaco-editor'
 import { useNavigatorStore } from '../../../../store/index'
 import './DescriptionModal.css'
 import { requestAutoDescriptionAsync, requestCustomDescriptionAsync, saveCustomDescriptionAsync, generateDescriptionAsync, GenerateDescriptionResult, notifyTextFocus } from '../../../../services/gameIntegration'
+import { SAFE_MONACO_CLIPBOARD_OPTIONS, restoreWordNavigation } from '../../../../services/clipboard'
 
 const DEV = import.meta.env.DEV
 
@@ -123,14 +124,15 @@ export function DescriptionModal({ sceneId }: DescriptionModalProps) {
         })
     }
 
-    const handleAutoMount: OnMount = (ed) => {
+    const handleAutoMount: OnMount = (ed, monaco) => {
         autoEditorRef.current = ed
         autoEditorRef.current?.setValue(autoDescription)
         ed.onDidFocusEditorText(() => notifyTextFocus(true))
         ed.onDidBlurEditorText(() => notifyTextFocus(false))
+        restoreWordNavigation(ed, monaco)
     }
 
-    const handleCustomMount: OnMount = (ed) => {
+    const handleCustomMount: OnMount = (ed, monaco) => {
         customEditorRef.current = ed
         customEditorRef.current?.setValue(customOverride)
         ed.onDidFocusEditorText(() => notifyTextFocus(true))
@@ -138,11 +140,13 @@ export function DescriptionModal({ sceneId }: DescriptionModalProps) {
         ed.onDidChangeModelContent(() => {
             setCustomOverride(ed.getValue())
         })
+        restoreWordNavigation(ed, monaco)
     }
 
     // Close on Escape — removed (inline, no modal)
 
     const editorOptions: editor.IStandaloneEditorConstructionOptions = {
+        ...SAFE_MONACO_CLIPBOARD_OPTIONS,
         minimap: { enabled: false },
         fontSize: 16,
         lineHeight: 22,

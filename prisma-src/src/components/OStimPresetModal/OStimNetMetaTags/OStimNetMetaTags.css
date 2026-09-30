@@ -172,8 +172,12 @@
     background: #1e1e1e;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    max-height: 240px;
+    max-height: 380px;
     overflow-y: auto;
+}
+
+.ostimnet-custom-select .ostimnet-suggestions {
+    max-height: 420px;
 }
 
 .ostimnet-suggestion-item {

@@ -6,6 +6,7 @@ import { SceneSuggestions } from '../../../store/types'
 import { useNavigatorStore } from '../../../store/index'
 import { requestSceneJsonAsync, saveSceneJsonAsync, notifyTextFocus } from '../../../services/gameIntegration'
 import ostimSceneSchema from '../../../schemas/ostimSceneJsonSchema.json'
+import { SAFE_MONACO_CLIPBOARD_OPTIONS, restoreWordNavigation } from '../../../services/clipboard'
 import './OStimJson.css'
 
 const OSTIM_SCHEMA_URI = 'https://ostim/scene-schema.json'
@@ -122,6 +123,8 @@ export function OStimJson({ sceneId }: OStimJsonProps) {
         ed.onDidFocusEditorText(() => notifyTextFocus(true))
         ed.onDidBlurEditorText(() => notifyTextFocus(false))
 
+        restoreWordNavigation(ed, monaco)
+
         ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
             // Use the ref so we always call the latest handleSave (correct sceneId),
             // even when the modal stays open across scene navigation.
@@ -173,6 +176,13 @@ export function OStimJson({ sceneId }: OStimJsonProps) {
         } catch {
             // not valid JSON — send as-is and let the backend reject it
         }
+
+        // Unfocus editable area so keyboard input is restored to the game/menu
+        const domNode = editorRef.current?.getDomNode()
+        domNode?.querySelector('textarea')?.blur()
+        ;(document.activeElement as HTMLElement)?.blur()
+        notifyTextFocus(false)
+
         const ok = DEV ? true : await saveSceneJsonAsync(sceneId, value)
         setSaveStatus(ok ? 'saved' : 'failed')
         setTimeout(() => setSaveStatus(null), 1800)
@@ -209,6 +219,7 @@ export function OStimJson({ sceneId }: OStimJsonProps) {
                     beforeMount={handleBeforeMount}
                     onMount={handleEditorMount}
                     options={{
+                        ...SAFE_MONACO_CLIPBOARD_OPTIONS,
                         minimap: { enabled: false },
                         fontSize: 16,
                         lineHeight: 22,

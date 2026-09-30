@@ -12503,6 +12503,30 @@ if this field is filled you can also add the "priority", "description", "icon", 
     definitions,
     description
   };
+  const SAFE_MONACO_CLIPBOARD_OPTIONS = {
+    accessibilitySupport: "on",
+    accessibilityPageSize: 1e5
+  };
+  function restoreWordNavigation(ed2, monaco) {
+    ed2.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.LeftArrow, () => {
+      ed2.trigger("keyboard", "cursorWordLeft", null);
+    });
+    ed2.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.RightArrow, () => {
+      ed2.trigger("keyboard", "cursorWordEndRight", null);
+    });
+    ed2.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.LeftArrow, () => {
+      ed2.trigger("keyboard", "cursorWordLeftSelect", null);
+    });
+    ed2.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.RightArrow, () => {
+      ed2.trigger("keyboard", "cursorWordEndRightSelect", null);
+    });
+    ed2.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Backspace, () => {
+      ed2.trigger("keyboard", "deleteWordLeft", null);
+    });
+    ed2.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Delete, () => {
+      ed2.trigger("keyboard", "deleteWordRight", null);
+    });
+  }
   const OSTIM_SCHEMA_URI = "https://ostim/scene-schema.json";
   const OSTIM_MODEL_PATH = "ostim-scene.json";
   function buildSchemaWithSuggestions(sugg) {
@@ -12589,6 +12613,7 @@ if this field is filled you can also add the "priority", "description", "icon", 
       editorRef.current = ed2;
       ed2.onDidFocusEditorText(() => notifyTextFocus(true));
       ed2.onDidBlurEditorText(() => notifyTextFocus(false));
+      restoreWordNavigation(ed2, monaco);
       ed2.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
         handleSaveRef.current();
       });
@@ -12627,7 +12652,7 @@ if this field is filled you can also add the "priority", "description", "icon", 
       }
     };
     async function handleSave() {
-      var _a, _b;
+      var _a, _b, _c, _d, _e;
       const raw = ((_a = editorRef.current) == null ? void 0 : _a.getValue()) ?? loadedValueRef.current ?? "";
       let value = raw;
       try {
@@ -12636,6 +12661,10 @@ if this field is filled you can also add the "priority", "description", "icon", 
         (_b = editorRef.current) == null ? void 0 : _b.setValue(value);
       } catch {
       }
+      const domNode = (_c = editorRef.current) == null ? void 0 : _c.getDomNode();
+      (_d = domNode == null ? void 0 : domNode.querySelector("textarea")) == null ? void 0 : _d.blur();
+      (_e = document.activeElement) == null ? void 0 : _e.blur();
+      notifyTextFocus(false);
       const ok2 = await saveSceneJsonAsync(sceneId, value);
       setSaveStatus(ok2 ? "saved" : "failed");
       setTimeout(() => setSaveStatus(null), 1800);
@@ -12663,6 +12692,7 @@ if this field is filled you can also add the "priority", "description", "icon", 
           beforeMount: handleBeforeMount,
           onMount: handleEditorMount,
           options: {
+            ...SAFE_MONACO_CLIPBOARD_OPTIONS,
             minimap: { enabled: false },
             fontSize: 16,
             lineHeight: 22,
@@ -12762,14 +12792,15 @@ if this field is filled you can also add the "priority", "description", "icon", 
         setTimeout(() => setCopiedCustom(false), 1800);
       });
     }
-    const handleAutoMount = (ed2) => {
+    const handleAutoMount = (ed2, monaco) => {
       var _a;
       autoEditorRef.current = ed2;
       (_a = autoEditorRef.current) == null ? void 0 : _a.setValue(autoDescription);
       ed2.onDidFocusEditorText(() => notifyTextFocus(true));
       ed2.onDidBlurEditorText(() => notifyTextFocus(false));
+      restoreWordNavigation(ed2, monaco);
     };
-    const handleCustomMount = (ed2) => {
+    const handleCustomMount = (ed2, monaco) => {
       var _a;
       customEditorRef.current = ed2;
       (_a = customEditorRef.current) == null ? void 0 : _a.setValue(customOverride);
@@ -12778,8 +12809,10 @@ if this field is filled you can also add the "priority", "description", "icon", 
       ed2.onDidChangeModelContent(() => {
         setCustomOverride(ed2.getValue());
       });
+      restoreWordNavigation(ed2, monaco);
     };
     const editorOptions = {
+      ...SAFE_MONACO_CLIPBOARD_OPTIONS,
       minimap: { enabled: false },
       fontSize: 16,
       lineHeight: 22,
