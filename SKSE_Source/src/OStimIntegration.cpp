@@ -97,8 +97,34 @@ namespace OStimNavigator {
         if (actor) {
             SKSE::log::debug("OStimIntegration::GetActorFromThread: Successfully retrieved actor {} from thread {}: {}", actorIndex, threadID, actor->GetName());
         } else {
-            SKSE::log::warn("OStimIntegration::GetActorFromThread: Form 0x{:X} is not an Actor.", formID);
+            SKSE::log::warn("OStimIntegration::GetActorFromThread: Form 0x{:X} is not an Actor.", formID, actorIndex);
         }
         return actor;
+    }
+
+    std::vector<RE::Actor*> OStimIntegration::GetActorsFromThread(uint32_t threadID) const
+    {
+        std::vector<RE::Actor*> actors;
+        if (!m_threadInterface) {
+            return actors;
+        }
+
+        uint32_t count = m_threadInterface->GetActorCount(threadID);
+        if (count == 0) {
+            return actors;
+        }
+
+        std::vector<OstimNG_API::Thread::ActorData> buffer(count);
+        uint32_t filled = m_threadInterface->GetActors(threadID, buffer.data(), count);
+        actors.resize(count, nullptr);
+
+        for (uint32_t i = 0; i < filled && i < count; ++i) {
+            if (buffer[i].formID != 0) {
+                if (auto* form = RE::TESForm::LookupByID(buffer[i].formID)) {
+                    actors[i] = form->As<RE::Actor>();
+                }
+            }
+        }
+        return actors;
     }
 }

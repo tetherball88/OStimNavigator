@@ -34,6 +34,9 @@ namespace OStimNavigator {
         // Returns nullptr if unavailable.
         RE::Actor* GetActorFromThread(uint32_t threadID, uint32_t actorIndex) const;
 
+        // Fetch all RE::Actor* in slot order for a thread in a single API call.
+        std::vector<RE::Actor*> GetActorsFromThread(uint32_t threadID) const;
+
     private:
         OStimIntegration() = default;
         OStimIntegration(const OStimIntegration&) = delete;

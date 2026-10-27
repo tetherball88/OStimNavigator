@@ -228,7 +228,7 @@ namespace OStimNavigator {
             return (bestTier <= 3) ? bestTier : -1;
         };
 
-        const auto allScenes = SceneDatabase::GetSingleton().GetAllScenes();
+        const auto& allScenes = SceneDatabase::GetSingleton().GetScenesByActorCount(currentScene->actorCount);
         SceneData* bestCandidate = nullptr;
         int bestPriority = 999999;
         int bestGiverDist = 999999;

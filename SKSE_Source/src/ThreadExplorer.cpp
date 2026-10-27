@@ -72,11 +72,12 @@ namespace OStimNavigator {
                     s_actionsAND = false;
                     s_actionTagsAND = false;
                     s_currentPage = 0;
-                    s_hideTransitions = true;
-                    s_useIntendedSex = true;                
-                    s_validateRequirements = true;
-                    s_hideNonRandom = true;
-                    s_hideIntroIdle = true;
+                    auto defaultSettings = SceneFilter::GetThreadDefaultSettings();
+                    s_hideTransitions = defaultSettings.hideTransitions;
+                    s_useIntendedSex = defaultSettings.useIntendedSex;
+                    s_validateRequirements = defaultSettings.validateRequirements;
+                    s_hideNonRandom = defaultSettings.hideNonRandom;
+                    s_hideIntroIdle = defaultSettings.hideIntroIdle;
                 }
             }
 

@@ -38,6 +38,8 @@ namespace OStimNavigator {
         bool isTransition = false;              // Is this a transition scene
         std::string destination;                // Transition destination (if transition)
         bool noRandomSelection = false;         // If true, not suitable for auto mode
+        bool isIntroOrIdle = false;             // True if scene tags include "intro" or "idle"
+        std::vector<std::string> positions;     // Pre-resolved canonical position names (excluding "idle")
         std::string firstSpeedAnimation;        // First speed animation name
     };
 
@@ -67,7 +69,7 @@ namespace OStimNavigator {
         // Query functions
         SceneData* GetSceneByID(const std::string& id);
         std::vector<SceneData*> GetAllScenes();
-        std::vector<SceneData*> GetScenesByActorCount(uint32_t actorCount);
+        const std::vector<SceneData*>& GetScenesByActorCount(uint32_t actorCount) const;
         std::vector<SceneData*> GetScenesByTag(const std::string& tag);
         std::vector<SceneData*> SearchScenesByName(const std::string& searchTerm);
         
@@ -102,6 +104,8 @@ namespace OStimNavigator {
         void ParseSceneFile(const std::filesystem::path& filePath);
         void ParseActors(const nlohmann::json& j, SceneData& scene);
         void ParseActions(const nlohmann::json& j, SceneData& scene);
+        void FinalizeSceneMetadata(SceneData& scene);
+        void RebuildActorCountIndex();
         
         template<typename Predicate>
         std::vector<SceneData*> FilterScenes(Predicate pred) {
@@ -115,6 +119,7 @@ namespace OStimNavigator {
         }
 
         std::unordered_map<std::string, SceneData> m_scenes;
+        std::unordered_map<uint32_t, std::vector<SceneData*>> m_scenesByActorCount;
         std::unordered_set<std::string> m_allTags;
         std::unordered_set<std::string> m_allActions;
         std::unordered_set<std::string> m_allActorTags;

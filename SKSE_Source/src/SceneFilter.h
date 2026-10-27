@@ -42,6 +42,10 @@ namespace OStimNavigator {
     
     class SceneFilter {
     public:
+        // Build default compatibility filter settings for an active OStim thread
+        // (respects OStim MCM IsUnrestrictedNavigation and IsIntendedSexOnly).
+        static SceneFilterSettings GetThreadDefaultSettings();
+
         // Apply all filters to scenes and return filtered results.
         // threadID: the OStim thread whose actors are used for compatibility checks.
         static SceneFilterResult ApplyFilters(
@@ -49,5 +53,14 @@ namespace OStimNavigator {
             SceneData* currentScene,
             const SceneFilterSettings& settings
         );
+
+        // Cached O(1) lookup for available canonical positions for an active thread.
+        static const std::string& GetThreadPositionsJson(uint32_t threadID);
+
+        // Cached O(1) lookup for available actions for an active thread (optionally filtered by tag).
+        static const std::string& GetThreadActionsJson(uint32_t threadID, const char* tag);
+
+        // Invalidate cached thread/setup filter results (called when a scene is reloaded/edited).
+        static void InvalidateCache();
     };
 }

@@ -20,6 +20,8 @@
 #include "src/KeyboardInputBlocker.h"
 #include "src/Settings.h"
 #include "src/PulloutSceneSearch.h"
+#include "src/SceneFilter.h"
+#include "src/StringUtils.h"
 
 using namespace SKSE;
 
@@ -410,6 +412,11 @@ const char* ONavGetAllPositions() {
 }
 
 extern "C" __declspec(dllexport)
+const char* ONavGetThreadPositions(uint32_t threadID) {
+    return OStimNavigator::SceneFilter::GetThreadPositionsJson(threadID).c_str();
+}
+
+extern "C" __declspec(dllexport)
 const char* ONavGetAllActions(const char* tag) {
     std::vector<std::string> actions;
     if (tag && tag[0] != '\0') {
@@ -429,6 +436,11 @@ const char* ONavGetAllActions(const char* tag) {
     static std::string s_result;
     s_result = std::move(json);
     return s_result.c_str();
+}
+
+extern "C" __declspec(dllexport)
+const char* ONavGetThreadActions(uint32_t threadID, const char* tag) {
+    return OStimNavigator::SceneFilter::GetThreadActionsJson(threadID, tag).c_str();
 }
 
 extern "C" __declspec(dllexport)

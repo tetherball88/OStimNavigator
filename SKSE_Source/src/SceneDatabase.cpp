@@ -3,6 +3,7 @@
 #include "FurnitureDatabase.h"
 #include "OStimNetMetaData.h"
 #include "SceneDescriptionData.h"
+#include "SceneFilter.h"
 #include "StringUtils.h"
 #include "JsonUtils.h"
 #include <chrono>
@@ -16,6 +17,7 @@ namespace OStimNavigator {
         }
 
         m_scenes.clear();
+        m_scenesByActorCount.clear();
         m_allTags.clear();
         m_allActions.clear();
         m_allActorTags.clear();
@@ -88,7 +90,42 @@ namespace OStimNavigator {
             }
         }
 
+        RebuildActorCountIndex();
         m_loaded = true;
+    }
+
+    void SceneDatabase::RebuildActorCountIndex() {
+        m_scenesByActorCount.clear();
+        for (auto& pair : m_scenes) {
+            m_scenesByActorCount[pair.second.actorCount].push_back(&pair.second);
+        }
+    }
+
+    void SceneDatabase::FinalizeSceneMetadata(SceneData& scene) {
+        static const std::unordered_set<std::string> positionsSet(kPositions.begin(), kPositions.end());
+        std::unordered_set<std::string> uniquePositions;
+        scene.isIntroOrIdle = false;
+
+        for (const auto& tag : scene.tags) {
+            if (tag == "intro" || tag == "idle") {
+                scene.isIntroOrIdle = true;
+            }
+            if (positionsSet.count(tag)) {
+                m_allPositions.insert(tag);
+                if (tag != "idle") {
+                    uniquePositions.insert(tag);
+                }
+            } else {
+                auto it = kPositionAliases.find(tag);
+                if (it != kPositionAliases.end()) {
+                    m_allPositions.insert(it->second);
+                    if (it->second != "idle") {
+                        uniquePositions.insert(it->second);
+                    }
+                }
+            }
+        }
+        scene.positions.assign(uniquePositions.begin(), uniquePositions.end());
     }
 
     void SceneDatabase::ReloadScene(const std::string& id) {
@@ -109,8 +146,11 @@ namespace OStimNavigator {
             // Parse failed — restore previous data so the scene remains accessible.
             SKSE::log::warn("SceneDatabase::ReloadScene: parse failed for '{}', keeping previous data", id);
             m_scenes[lowerID] = std::move(backup);
+            RebuildActorCountIndex();
             return;
         }
+        RebuildActorCountIndex();
+        SceneFilter::InvalidateCache();
         SKSE::log::info("SceneDatabase::ReloadScene: refreshed '{}' from {}", id, filePath.string());
     }
 
@@ -250,20 +290,8 @@ namespace OStimNavigator {
                 }
             }
 
-            // Collect positions from final scene tags (after OStimNet injection)
-            {
-                static const std::unordered_set<std::string> positionsSet(kPositions.begin(), kPositions.end());
-                for (const auto& tag : scene.tags) {
-                    if (positionsSet.count(tag)) {
-                        m_allPositions.insert(tag);
-                    } else {
-                        auto it = kPositionAliases.find(tag);
-                        if (it != kPositionAliases.end()) m_allPositions.insert(it->second);
-                    }
-                }
-            }
-
-            m_scenes[scene.id] = scene;
+            // Collect positions and intro/idle flag from final scene tags (after OStimNet injection)
+            FinalizeSceneMetadata(scene);
 
             // Increment the scene count on the matched furniture type if this scene has
             // at least one sexual action and is tied to a specific furniture type.
@@ -274,6 +302,9 @@ namespace OStimNavigator {
                     FurnitureDatabase::GetSingleton().IncrementSceneCount(scene.furnitureType);
                 }
             }
+
+            std::string sceneId = scene.id;
+            m_scenes[sceneId] = std::move(scene);
 
         } catch (const std::exception& e) {
             SKSE::log::error("Error parsing scene file {}: {}", filePath.string(), e.what());
@@ -358,10 +389,13 @@ namespace OStimNavigator {
         return result;
     }
 
-    std::vector<SceneData*> SceneDatabase::GetScenesByActorCount(uint32_t actorCount) {
-        return FilterScenes([actorCount](const SceneData& scene) {
-            return scene.actorCount == actorCount;
-        });
+    const std::vector<SceneData*>& SceneDatabase::GetScenesByActorCount(uint32_t actorCount) const {
+        static const std::vector<SceneData*> kEmpty;
+        auto it = m_scenesByActorCount.find(actorCount);
+        if (it != m_scenesByActorCount.end()) {
+            return it->second;
+        }
+        return kEmpty;
     }
 
     std::vector<SceneData*> SceneDatabase::GetScenesByTag(const std::string& tag) {
@@ -442,7 +476,11 @@ namespace OStimNavigator {
             // already applied during the initial LoadScenes() pass and must not run
             // again during a hot-reload triggered by a user edit.
 
+            FinalizeSceneMetadata(scene);
+
             m_scenes[lowerID] = std::move(scene);
+            RebuildActorCountIndex();
+            SceneFilter::InvalidateCache();
             SKSE::log::info("SceneDatabase::ReloadSceneFromContent: refreshed '{}'", id);
         } catch (const std::exception& e) {
             SKSE::log::error("SceneDatabase::ReloadSceneFromContent: parse failed for '{}': {}", id, e.what());
