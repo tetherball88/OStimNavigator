@@ -417,6 +417,11 @@ const char* ONavGetThreadPositions(uint32_t threadID) {
 }
 
 extern "C" __declspec(dllexport)
+const char* ONavGetSetupPositions(const uint32_t* actorFormIDs, uint32_t actorCount, const char* furnitureType) {
+    return OStimNavigator::SceneFilter::GetSetupPositionsJson(actorFormIDs, actorCount, furnitureType).c_str();
+}
+
+extern "C" __declspec(dllexport)
 const char* ONavGetAllActions(const char* tag) {
     std::vector<std::string> actions;
     if (tag && tag[0] != '\0') {
@@ -444,6 +449,11 @@ const char* ONavGetThreadActions(uint32_t threadID, const char* tag) {
 }
 
 extern "C" __declspec(dllexport)
+const char* ONavGetSetupActions(const uint32_t* actorFormIDs, uint32_t actorCount, const char* furnitureType, const char* phaseOrTag) {
+    return OStimNavigator::SceneFilter::GetSetupActionsJson(actorFormIDs, actorCount, furnitureType, phaseOrTag).c_str();
+}
+
+extern "C" __declspec(dllexport)
 const char* ONavGetFurnitureTypesWithSexScenes(uint32_t minSceneCount, uint32_t centerRefID, float radius) {
     if (minSceneCount == 0) minSceneCount = 1;
 
@@ -457,13 +467,19 @@ const char* ONavGetFurnitureTypesWithSexScenes(uint32_t minSceneCount, uint32_t 
                 if (!ref || ref->IsDisabled() || ref->IsDeleted()) {
                     return RE::BSContainer::ForEachResult::kContinue;
                 }
-                auto* ft = OStimNavigator::FurnitureDatabase::GetSingleton().GetFurnitureType(ref);
-                if (ft && ft->sceneCount >= minSceneCount) {
-                    float dist = (centerPos - ref->GetPosition()).Length();
-                    auto it = nearbyTypeDistances.find(ft->id);
-                    if (it == nearbyTypeDistances.end() || dist < it->second) {
-                        nearbyTypeDistances[ft->id] = dist;
+                const auto* ft = OStimNavigator::FurnitureDatabase::GetSingleton().GetFurnitureType(ref);
+                float dist = -1.0f;
+                while (ft) {
+                    if (ft->sceneCount >= minSceneCount) {
+                        if (dist < 0.0f) {
+                            dist = (centerPos - ref->GetPosition()).Length();
+                        }
+                        auto it = nearbyTypeDistances.find(ft->id);
+                        if (it == nearbyTypeDistances.end() || dist < it->second) {
+                            nearbyTypeDistances[ft->id] = dist;
+                        }
                     }
+                    ft = ft->supertype;
                 }
                 return RE::BSContainer::ForEachResult::kContinue;
             });
@@ -613,42 +629,7 @@ int ONavGetScenePhaseRank(const char* sceneId) {
     if (!sceneId || sceneId[0] == '\0') return -1;
     const auto* scene = OStimNavigator::SceneDatabase::GetSingleton().GetSceneByID(sceneId);
     if (!scene) return -1;
-
-    auto& actionDB = OStimNavigator::ActionDatabase::GetSingleton();
-
-    // Canonical action types that carry the "oral" tag but belong to the Foreplay phase.
-    // Aliases are resolved to canonical types at scene load time, so alias handling is not needed here.
-    static const std::unordered_set<std::string> kOralButForeplay = {
-        "lickingnipple",    // nipple licking
-        "suckingnipple",    // nipple sucking
-    };
-
-    int maxRank = -1;
-
-    for (const auto& action : scene->actions) {
-        if (action.type.empty()) continue;
-
-        int rank = -1;
-        if (actionDB.ActionHasTag(action.type, "intercourse")) {
-            rank = 3;
-        } else if (actionDB.ActionHasTag(action.type, "oral") &&
-                   !kOralButForeplay.count(action.type)) {
-            rank = 2;
-        } else if (actionDB.ActionHasTag(action.type, "penilestimulation") ||
-                   actionDB.ActionHasTag(action.type, "fingering") ||
-                   actionDB.ActionHasTag(action.type, "toying") ||
-                   actionDB.ActionHasTag(action.type, "clitoralstimulation") ||
-                   kOralButForeplay.count(action.type)) {
-            rank = 1;
-        }
-
-        if (rank > maxRank) {
-            maxRank = rank;
-            if (maxRank == 3) break;  // Can't go higher; short-circuit
-        }
-    }
-
-    return maxRank;
+    return scene->phaseRank;
 }
 
 // Searches and returns the best matching pullout scene for the given active scene.

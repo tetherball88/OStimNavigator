@@ -20,6 +20,7 @@ namespace OStimNavigator {
         int actor = -1;                         // Actor role index (-1 if not specified)
         int target = -1;                        // Target role index (-1 if not specified)
         int performer = -1;                     // Performer role index (-1 if not specified)
+        int phaseRank = -1;                     // 1=Foreplay, 2=Oral, 3=Sex/Intercourse, -1=Other
     };
     
     struct SceneData {
@@ -39,6 +40,7 @@ namespace OStimNavigator {
         std::string destination;                // Transition destination (if transition)
         bool noRandomSelection = false;         // If true, not suitable for auto mode
         bool isIntroOrIdle = false;             // True if scene tags include "intro" or "idle"
+        int phaseRank = -1;                     // Highest action phaseRank in scene (1=Foreplay, 2=Oral, 3=Sex, -1=None)
         std::vector<std::string> positions;     // Pre-resolved canonical position names (excluding "idle")
         std::string firstSpeedAnimation;        // First speed animation name
     };

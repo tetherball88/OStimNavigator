@@ -347,6 +347,27 @@ namespace OStimNavigator {
         return furnitureTypes;
     }
 
+    std::unordered_set<std::string> FurnitureDatabase::GetFurnitureTypesFromID(const std::string& id) {
+        std::unordered_set<std::string> furnitureTypes;
+        std::string idLower = StringUtils::ToLowerCopy(id);
+        if (idLower.empty() || idLower == "floor" || idLower == "none") {
+            return furnitureTypes;
+        }
+
+        furnitureTypes.insert(idLower);
+        if (const auto* ft = GetFurnitureType(idLower)) {
+            AddSuperTypes(furnitureTypes, ft);
+            if (ft->faction) {
+                for (const auto& [furnitureID, furnitureData] : m_furnitureTypes) {
+                    if (furnitureData.faction == ft->faction) {
+                        AddSuperTypes(furnitureTypes, &furnitureData);
+                    }
+                }
+            }
+        }
+        return furnitureTypes;
+    }
+
     bool FurnitureDatabase::IsSceneCompatible(const std::unordered_set<std::string>& threadFurnitureTypes, const std::string& sceneFurniture) {
         std::string sceneFurnitureLower = StringUtils::ToLowerCopy(sceneFurniture);
 

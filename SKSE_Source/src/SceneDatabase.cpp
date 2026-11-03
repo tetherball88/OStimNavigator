@@ -103,8 +103,14 @@ namespace OStimNavigator {
 
     void SceneDatabase::FinalizeSceneMetadata(SceneData& scene) {
         static const std::unordered_set<std::string> positionsSet(kPositions.begin(), kPositions.end());
+        static const std::unordered_set<std::string> kOralButForeplay = {
+            "lickingnipple",
+            "suckingnipple",
+        };
+
         std::unordered_set<std::string> uniquePositions;
         scene.isIntroOrIdle = false;
+        scene.phaseRank = -1;
 
         for (const auto& tag : scene.tags) {
             if (tag == "intro" || tag == "idle") {
@@ -126,6 +132,33 @@ namespace OStimNavigator {
             }
         }
         scene.positions.assign(uniquePositions.begin(), uniquePositions.end());
+
+        auto& actionDB = ActionDatabase::GetSingleton();
+        for (auto& action : scene.actions) {
+            if (action.type.empty()) {
+                action.phaseRank = -1;
+                continue;
+            }
+            int rank = -1;
+            if (actionDB.ActionHasTag(action.type, "intercourse")) {
+                rank = 3;
+            } else if (actionDB.ActionHasTag(action.type, "oral") &&
+                       !kOralButForeplay.count(action.type)) {
+                rank = 2;
+            } else if (actionDB.ActionHasTag(action.type, "penilestimulation") ||
+                       actionDB.ActionHasTag(action.type, "fingering") ||
+                       actionDB.ActionHasTag(action.type, "toying") ||
+                       actionDB.ActionHasTag(action.type, "clitoralstimulation") ||
+                       kOralButForeplay.count(action.type) ||
+                       action.type == "breastsmothering" ||
+                       action.type == "buttsmothering") {
+                rank = 1;
+            }
+            action.phaseRank = rank;
+            if (rank > scene.phaseRank) {
+                scene.phaseRank = rank;
+            }
+        }
     }
 
     void SceneDatabase::ReloadScene(const std::string& id) {
@@ -294,12 +327,16 @@ namespace OStimNavigator {
             FinalizeSceneMetadata(scene);
 
             // Increment the scene count on the matched furniture type if this scene has
-            // at least one sexual action and is tied to a specific furniture type.
-            if (!scene.furnitureType.empty()) {
+            // at least one sexual action. Scenes with no furniture requirement also work on beds.
+            {
                 bool hasSexualAction = std::any_of(scene.actions.begin(), scene.actions.end(),
                     [](const SceneActionData& a) { return kSexualActionTypes.count(a.type) > 0; });
                 if (hasSexualAction) {
-                    FurnitureDatabase::GetSingleton().IncrementSceneCount(scene.furnitureType);
+                    if (!scene.furnitureType.empty()) {
+                        FurnitureDatabase::GetSingleton().IncrementSceneCount(scene.furnitureType);
+                    } else {
+                        FurnitureDatabase::GetSingleton().IncrementSceneCount("bed");
+                    }
                 }
             }
 

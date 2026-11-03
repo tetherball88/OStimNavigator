@@ -57,8 +57,24 @@ namespace OStimNavigator {
         // Cached O(1) lookup for available canonical positions for an active thread.
         static const std::string& GetThreadPositionsJson(uint32_t threadID);
 
-        // Cached O(1) lookup for available actions for an active thread (optionally filtered by tag).
+        // Cached O(1) lookup for available actions for an active thread (optionally filtered by phase/tag).
         static const std::string& GetThreadActionsJson(uint32_t threadID, const char* tag);
+
+        // Cached O(1) lookup for available canonical positions for a pre-start actor + furniture setup.
+        static const std::string& GetSetupPositionsJson(
+            const uint32_t* actorFormIDs,
+            uint32_t actorCount,
+            const char* furnitureType
+        );
+
+        // Cached O(1) lookup for available actions for a pre-start actor + furniture setup
+        // (phaseOrTag: "foreplay", "oral", "sex", "sexual", or empty for all).
+        static const std::string& GetSetupActionsJson(
+            const uint32_t* actorFormIDs,
+            uint32_t actorCount,
+            const char* furnitureType,
+            const char* phaseOrTag
+        );
 
         // Invalidate cached thread/setup filter results (called when a scene is reloaded/edited).
         static void InvalidateCache();

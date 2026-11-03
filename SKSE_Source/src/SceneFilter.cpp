@@ -14,6 +14,9 @@ namespace OStimNavigator {
             std::vector<SceneData*> compatibleScenes;
             std::string positionsJson = "[]";
             std::string allActionsJson = "[]";
+            std::string foreplayActionsJson = "[]";
+            std::string oralActionsJson = "[]";
+            std::string sexActionsJson = "[]";
             std::unordered_set<std::string> allActionsSet;
             std::unordered_map<std::string, std::string> actionsByTagJson;
         };
@@ -86,11 +89,209 @@ namespace OStimNavigator {
             }
         }
 
-        // Resolves or builds the SetupCacheEntry for a thread using the two-level cache.
+        // Builds or retrieves a SetupCacheEntry for a given vector of actors + furnitureTypes + MCM flags.
+        SetupCacheEntry* GetOrBuildSetupCacheFromActors(
+            std::vector<RE::Actor*> actors,
+            const std::unordered_set<std::string>& threadFurnitureTypes,
+            bool useIntendedSex,
+            bool validateRequirements,
+            bool sortActorsForOStim,
+            std::string* outSetupKey = nullptr
+        ) {
+            auto& sceneDB = SceneDatabase::GetSingleton();
+            auto& actionDB = ActionDatabase::GetSingleton();
+            auto& furnitureDB = FurnitureDatabase::GetSingleton();
+            auto& propsDB = ActorPropertiesDatabase::GetSingleton();
+
+            if (!sceneDB.IsLoaded())
+                return nullptr;
+
+            uint32_t actorCount = static_cast<uint32_t>(actors.size());
+            if (actorCount == 0)
+                return nullptr;
+
+            if (validateRequirements && propsDB.IsLoaded()) {
+                propsDB.ClearCache();
+            }
+
+            struct SlotInfo {
+                RE::Actor* actor = nullptr;
+                bool isMale = false;
+                bool hasPenis = false;
+                std::unordered_set<std::string> reqs;
+            };
+            std::vector<SlotInfo> slots(actorCount);
+
+            for (uint32_t i = 0; i < actorCount; ++i) {
+                slots[i].actor = actors[i];
+                if (RE::Actor* actor = actors[i]) {
+                    if (auto* base = actor->GetActorBase()) {
+                        slots[i].isMale = (base->GetSex() == RE::SEXES::kMale);
+                    }
+                    if (propsDB.IsLoaded()) {
+                        slots[i].reqs = propsDB.GetActorRequirements(actor);
+                        slots[i].hasPenis = (slots[i].reqs.find("penis") != slots[i].reqs.end());
+                    } else {
+                        slots[i].hasPenis = slots[i].isMale;
+                    }
+                }
+            }
+
+            // When called pre-start (before OActorUtil.Sort has run), sort actors into OStim's slot order:
+            // males first, then non-male schlongified/strap-on actors (when !useIntendedSex), then females.
+            if (sortActorsForOStim && actorCount > 1) {
+                std::stable_sort(slots.begin(), slots.end(),
+                    [useIntendedSex](const SlotInfo& a, const SlotInfo& b) {
+                        int rankA = a.isMale ? 0 : ((!useIntendedSex && a.hasPenis) ? 1 : 2);
+                        int rankB = b.isMale ? 0 : ((!useIntendedSex && b.hasPenis) ? 1 : 2);
+                        return rankA < rankB;
+                    });
+            }
+
+            // Build deterministic setup signature key for Level 2 cache
+            std::string setupKey = std::to_string(actorCount) + "|" +
+                                   (useIntendedSex ? "1" : "0") + "|" +
+                                   (validateRequirements ? "1" : "0") + "|";
+            {
+                auto sortedFurn = StringUtils::SetToSortedVector(threadFurnitureTypes);
+                for (size_t i = 0; i < sortedFurn.size(); ++i) {
+                    if (i > 0) setupKey += ",";
+                    setupKey += sortedFurn[i];
+                }
+            }
+            for (uint32_t i = 0; i < actorCount; ++i) {
+                setupKey += "|";
+                if (!slots[i].actor) {
+                    setupKey += "null";
+                } else {
+                    setupKey += (slots[i].isMale ? "M:" : "F:");
+                    if (validateRequirements) {
+                        auto sortedReqs = StringUtils::SetToSortedVector(slots[i].reqs);
+                        for (size_t r = 0; r < sortedReqs.size(); ++r) {
+                            if (r > 0) setupKey += ",";
+                            setupKey += sortedReqs[r];
+                        }
+                    }
+                }
+            }
+
+            if (outSetupKey) {
+                *outSetupKey = setupKey;
+            }
+
+            // Level 2 cache check: has this exact setup already been computed?
+            auto setupIt = s_setupCache.find(setupKey);
+            if (setupIt != s_setupCache.end()) {
+                return &setupIt->second;
+            }
+
+            // Level 2 miss: filter only scenes matching actorCount and prebuild JSON caches in one pass
+            SetupCacheEntry newEntry;
+            const auto& candidateScenes = sceneDB.GetScenesByActorCount(actorCount);
+            newEntry.compatibleScenes.reserve(candidateScenes.size());
+
+            std::unordered_set<std::string> allPositionsSet;
+            std::unordered_set<std::string> sexPositionsSet;
+            std::unordered_set<std::string> foreplayActionsSet;
+            std::unordered_set<std::string> oralActionsSet;
+            std::unordered_set<std::string> sexActionsSet;
+
+            const bool checkFurniture = furnitureDB.IsLoaded();
+            const bool checkReqs = validateRequirements && actionDB.IsLoaded() && propsDB.IsLoaded();
+
+            for (auto* scene : candidateScenes) {
+                if (!scene) continue;
+                if (scene->isTransition || scene->noRandomSelection || scene->isIntroOrIdle)
+                    continue;
+
+                if (checkFurniture && !furnitureDB.IsSceneCompatible(threadFurnitureTypes, scene->furnitureType))
+                    continue;
+
+                if (useIntendedSex) {
+                    bool sexMismatch = false;
+                    for (uint32_t i = 0; i < actorCount && i < scene->actors.size(); ++i) {
+                        const auto& intendedSex = scene->actors[i].intendedSex;
+                        if (slots[i].actor) {
+                            if ((intendedSex == "male" && !slots[i].isMale) ||
+                                (intendedSex == "female" && slots[i].isMale)) {
+                                sexMismatch = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (sexMismatch) continue;
+                }
+
+                if (checkReqs) {
+                    bool requirementsMismatch = false;
+                    for (const auto& sceneAction : scene->actions) {
+                        const ActionData* actionData = actionDB.GetAction(sceneAction.type);
+                        if (!actionData) continue;
+
+                        int actorIdx = sceneAction.actor;
+                        int targetIdx = (sceneAction.target >= 0) ? sceneAction.target : sceneAction.actor;
+                        int performerIdx = (sceneAction.performer >= 0) ? sceneAction.performer : sceneAction.actor;
+
+                        if (actorIdx >= 0 && static_cast<uint32_t>(actorIdx) < actorCount) {
+                            if (!ValidateRoleRequirements(actionData->actorRequirements, slots[actorIdx].reqs, slots[actorIdx].actor != nullptr)) {
+                                requirementsMismatch = true; break;
+                            }
+                        }
+                        if (targetIdx >= 0 && static_cast<uint32_t>(targetIdx) < actorCount) {
+                            if (!ValidateRoleRequirements(actionData->targetRequirements, slots[targetIdx].reqs, slots[targetIdx].actor != nullptr)) {
+                                requirementsMismatch = true; break;
+                            }
+                        }
+                        if (performerIdx >= 0 && static_cast<uint32_t>(performerIdx) < actorCount) {
+                            if (!ValidateRoleRequirements(actionData->performerRequirements, slots[performerIdx].reqs, slots[performerIdx].actor != nullptr)) {
+                                requirementsMismatch = true; break;
+                            }
+                        }
+                    }
+                    if (requirementsMismatch) continue;
+                }
+
+                newEntry.compatibleScenes.push_back(scene);
+
+                for (const auto& pos : scene->positions) {
+                    allPositionsSet.insert(pos);
+                    if (scene->phaseRank == 3) {
+                        sexPositionsSet.insert(pos);
+                    }
+                }
+
+                for (const auto& action : scene->actions) {
+                    if (action.type.empty()) continue;
+                    newEntry.allActionsSet.insert(action.type);
+
+                    if (scene->phaseRank == 1 && action.phaseRank == 1) {
+                        foreplayActionsSet.insert(action.type);
+                    } else if (scene->phaseRank == 2 && action.phaseRank == 2) {
+                        oralActionsSet.insert(action.type);
+                    } else if (scene->phaseRank == 3 && action.phaseRank == 3) {
+                        sexActionsSet.insert(action.type);
+                    }
+                }
+            }
+
+            std::sort(newEntry.compatibleScenes.begin(), newEntry.compatibleScenes.end(),
+                [](const SceneData* a, const SceneData* b) { return a->id < b->id; });
+
+            const auto& finalPositions = !sexPositionsSet.empty() ? sexPositionsSet : allPositionsSet;
+            newEntry.positionsJson       = VectorToJsonArray(StringUtils::SetToSortedVector(finalPositions));
+            newEntry.allActionsJson      = VectorToJsonArray(StringUtils::SetToSortedVector(newEntry.allActionsSet));
+            newEntry.foreplayActionsJson = VectorToJsonArray(StringUtils::SetToSortedVector(foreplayActionsSet));
+            newEntry.oralActionsJson     = VectorToJsonArray(StringUtils::SetToSortedVector(oralActionsSet));
+            newEntry.sexActionsJson      = VectorToJsonArray(StringUtils::SetToSortedVector(sexActionsSet));
+
+            auto [insertedIt, _] = s_setupCache.emplace(std::move(setupKey), std::move(newEntry));
+            return &insertedIt->second;
+        }
+
+        // Resolves or builds the SetupCacheEntry for an active thread using the two-level cache.
         SetupCacheEntry* GetOrBuildSetupCache(uint32_t threadID, bool useIntendedSex, bool validateRequirements) {
             auto& ostim = OStimIntegration::GetSingleton();
             auto& sceneDB = SceneDatabase::GetSingleton();
-            auto& actionDB = ActionDatabase::GetSingleton();
             auto& furnitureDB = FurnitureDatabase::GetSingleton();
 
             if (!sceneDB.IsLoaded())
@@ -133,149 +334,55 @@ namespace OStimNavigator {
                 }
             }
 
-            // Level 1 miss (new thread or thread state changed): evaluate actor properties once per actor
-            auto& propsDB = ActorPropertiesDatabase::GetSingleton();
-            if (validateRequirements && propsDB.IsLoaded()) {
-                propsDB.ClearCache();
+            std::string setupKey;
+            SetupCacheEntry* entry = GetOrBuildSetupCacheFromActors(
+                threadActors, threadFurnitureTypes, useIntendedSex, validateRequirements,
+                /*sortActorsForOStim=*/false, &setupKey);
+
+            if (entry) {
+                ThreadCacheState state;
+                state.actorFormIDs = std::move(actorFormIDs);
+                state.furnitureTypes = std::move(threadFurnitureTypes);
+                state.useIntendedSex = useIntendedSex;
+                state.validateRequirements = validateRequirements;
+                state.setupKey = std::move(setupKey);
+                s_threadCache[threadID] = std::move(state);
+            }
+            return entry;
+        }
+
+        const std::string& SelectActionsJsonFromEntry(SetupCacheEntry* entry, const char* phaseOrTag) {
+            if (!entry) return kEmptyJsonArray;
+            if (!phaseOrTag || phaseOrTag[0] == '\0') {
+                return entry->allActionsJson;
             }
 
-            std::vector<bool> actorIsMale(actorCount, false);
-            std::vector<std::unordered_set<std::string>> actorReqs(actorCount);
-
-            for (uint32_t i = 0; i < actorCount; ++i) {
-                if (RE::Actor* actor = threadActors[i]) {
-                    if (auto* base = actor->GetActorBase()) {
-                        actorIsMale[i] = (base->GetSex() == RE::SEXES::kMale);
-                    }
-                    if (validateRequirements && propsDB.IsLoaded()) {
-                        actorReqs[i] = propsDB.GetActorRequirements(actor);
-                    }
-                }
+            std::string key = StringUtils::ToLowerCopy(phaseOrTag);
+            if (key == "foreplay") {
+                return entry->foreplayActionsJson;
+            }
+            if (key == "oral") {
+                return entry->oralActionsJson;
+            }
+            if (key == "sex" || key == "intercourse") {
+                return entry->sexActionsJson;
             }
 
-            // Build deterministic setup signature key for Level 2 cache
-            std::string setupKey = std::to_string(actorCount) + "|" +
-                                   (useIntendedSex ? "1" : "0") + "|" +
-                                   (validateRequirements ? "1" : "0") + "|";
-            {
-                auto sortedFurn = StringUtils::SetToSortedVector(threadFurnitureTypes);
-                for (size_t i = 0; i < sortedFurn.size(); ++i) {
-                    if (i > 0) setupKey += ",";
-                    setupKey += sortedFurn[i];
-                }
-            }
-            for (uint32_t i = 0; i < actorCount; ++i) {
-                setupKey += "|";
-                if (!threadActors[i]) {
-                    setupKey += "null";
-                } else {
-                    setupKey += (actorIsMale[i] ? "M:" : "F:");
-                    if (validateRequirements) {
-                        auto sortedReqs = StringUtils::SetToSortedVector(actorReqs[i]);
-                        for (size_t r = 0; r < sortedReqs.size(); ++r) {
-                            if (r > 0) setupKey += ",";
-                            setupKey += sortedReqs[r];
-                        }
-                    }
-                }
+            auto it = entry->actionsByTagJson.find(key);
+            if (it != entry->actionsByTagJson.end()) {
+                return it->second;
             }
 
-            // Update Level 1 cache for this threadID
-            ThreadCacheState state;
-            state.actorFormIDs = std::move(actorFormIDs);
-            state.furnitureTypes = threadFurnitureTypes;
-            state.useIntendedSex = useIntendedSex;
-            state.validateRequirements = validateRequirements;
-            state.setupKey = setupKey;
-            s_threadCache[threadID] = std::move(state);
-
-            // Level 2 cache check: has this exact setup already been computed?
-            auto setupIt = s_setupCache.find(setupKey);
-            if (setupIt != s_setupCache.end()) {
-                return &setupIt->second;
-            }
-
-            // Level 2 miss: filter only scenes matching actorCount and prebuild JSON caches in one pass
-            SetupCacheEntry newEntry;
-            const auto& candidateScenes = sceneDB.GetScenesByActorCount(actorCount);
-            newEntry.compatibleScenes.reserve(candidateScenes.size());
-
-            std::unordered_set<std::string> positionsSet;
-            const bool checkFurniture = furnitureDB.IsLoaded();
-            const bool checkReqs = validateRequirements && actionDB.IsLoaded() && propsDB.IsLoaded();
-
-            for (auto* scene : candidateScenes) {
-                if (!scene) continue;
-                if (scene->isTransition || scene->noRandomSelection || scene->isIntroOrIdle)
-                    continue;
-
-                if (checkFurniture && !furnitureDB.IsSceneCompatible(threadFurnitureTypes, scene->furnitureType))
-                    continue;
-
-                if (useIntendedSex) {
-                    bool sexMismatch = false;
-                    for (uint32_t i = 0; i < actorCount && i < scene->actors.size(); ++i) {
-                        const auto& intendedSex = scene->actors[i].intendedSex;
-                        if (threadActors[i]) {
-                            if ((intendedSex == "male" && !actorIsMale[i]) ||
-                                (intendedSex == "female" && actorIsMale[i])) {
-                                sexMismatch = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (sexMismatch) continue;
-                }
-
-                if (checkReqs) {
-                    bool requirementsMismatch = false;
-                    for (const auto& sceneAction : scene->actions) {
-                        const ActionData* actionData = actionDB.GetAction(sceneAction.type);
-                        if (!actionData) continue;
-
-                        int actorIdx = sceneAction.actor;
-                        int targetIdx = (sceneAction.target >= 0) ? sceneAction.target : sceneAction.actor;
-                        int performerIdx = (sceneAction.performer >= 0) ? sceneAction.performer : sceneAction.actor;
-
-                        if (actorIdx >= 0 && static_cast<uint32_t>(actorIdx) < actorCount) {
-                            if (!ValidateRoleRequirements(actionData->actorRequirements, actorReqs[actorIdx], threadActors[actorIdx] != nullptr)) {
-                                requirementsMismatch = true; break;
-                            }
-                        }
-                        if (targetIdx >= 0 && static_cast<uint32_t>(targetIdx) < actorCount) {
-                            if (!ValidateRoleRequirements(actionData->targetRequirements, actorReqs[targetIdx], threadActors[targetIdx] != nullptr)) {
-                                requirementsMismatch = true; break;
-                            }
-                        }
-                        if (performerIdx >= 0 && static_cast<uint32_t>(performerIdx) < actorCount) {
-                            if (!ValidateRoleRequirements(actionData->performerRequirements, actorReqs[performerIdx], threadActors[performerIdx] != nullptr)) {
-                                requirementsMismatch = true; break;
-                            }
-                        }
-                    }
-                    if (requirementsMismatch) continue;
-                }
-
-                newEntry.compatibleScenes.push_back(scene);
-
-                for (const auto& pos : scene->positions) {
-                    positionsSet.insert(pos);
-                }
-                for (const auto& action : scene->actions) {
-                    if (!action.type.empty()) {
-                        newEntry.allActionsSet.insert(action.type);
-                    }
+            auto withTag = ActionDatabase::GetSingleton().GetActionsWithTag(key);
+            std::unordered_set<std::string> matching;
+            for (const auto& actionType : entry->allActionsSet) {
+                if (withTag.count(actionType)) {
+                    matching.insert(actionType);
                 }
             }
-
-            std::sort(newEntry.compatibleScenes.begin(), newEntry.compatibleScenes.end(),
-                [](const SceneData* a, const SceneData* b) { return a->id < b->id; });
-
-            newEntry.positionsJson = VectorToJsonArray(StringUtils::SetToSortedVector(positionsSet));
-            newEntry.allActionsJson = VectorToJsonArray(StringUtils::SetToSortedVector(newEntry.allActionsSet));
-
-            auto [insertedIt, _] = s_setupCache.emplace(std::move(setupKey), std::move(newEntry));
-            return &insertedIt->second;
+            std::string json = VectorToJsonArray(StringUtils::SetToSortedVector(matching));
+            auto [insertedIt, _] = entry->actionsByTagJson.emplace(std::move(key), std::move(json));
+            return insertedIt->second;
         }
     }
 
@@ -316,30 +423,76 @@ namespace OStimNavigator {
     const std::string& SceneFilter::GetThreadActionsJson(uint32_t threadID, const char* tag) {
         auto settings = GetThreadDefaultSettings();
         auto* entry = GetOrBuildSetupCache(threadID, settings.useIntendedSex, settings.validateRequirements);
-        if (!entry) {
+        return SelectActionsJsonFromEntry(entry, tag);
+    }
+
+    const std::string& SceneFilter::GetSetupPositionsJson(
+        const uint32_t* actorFormIDs,
+        uint32_t actorCount,
+        const char* furnitureType
+    ) {
+        if (!actorFormIDs || actorCount == 0) {
+            return kEmptyJsonArray;
+        }
+        std::vector<RE::Actor*> actors;
+        actors.reserve(actorCount);
+        for (uint32_t i = 0; i < actorCount; ++i) {
+            if (actorFormIDs[i] != 0) {
+                if (auto* a = RE::TESForm::LookupByID<RE::Actor>(actorFormIDs[i])) {
+                    actors.push_back(a);
+                }
+            }
+        }
+        if (actors.empty()) {
             return kEmptyJsonArray;
         }
 
-        if (!tag || tag[0] == '\0') {
-            return entry->allActionsJson;
-        }
+        auto settings = GetThreadDefaultSettings();
+        auto& furnitureDB = FurnitureDatabase::GetSingleton();
+        std::unordered_set<std::string> furnitureTypes = furnitureDB.IsLoaded()
+            ? furnitureDB.GetFurnitureTypesFromID(furnitureType ? furnitureType : "")
+            : std::unordered_set<std::string>{};
 
-        std::string tagStr(tag);
-        auto it = entry->actionsByTagJson.find(tagStr);
-        if (it != entry->actionsByTagJson.end()) {
-            return it->second;
+        if (auto* entry = GetOrBuildSetupCacheFromActors(
+                actors, furnitureTypes, settings.useIntendedSex, settings.validateRequirements,
+                /*sortActorsForOStim=*/true)) {
+            return entry->positionsJson;
         }
+        return kEmptyJsonArray;
+    }
 
-        auto withTag = ActionDatabase::GetSingleton().GetActionsWithTag(tagStr);
-        std::unordered_set<std::string> matching;
-        for (const auto& actionType : entry->allActionsSet) {
-            if (withTag.count(actionType)) {
-                matching.insert(actionType);
+    const std::string& SceneFilter::GetSetupActionsJson(
+        const uint32_t* actorFormIDs,
+        uint32_t actorCount,
+        const char* furnitureType,
+        const char* phaseOrTag
+    ) {
+        if (!actorFormIDs || actorCount == 0) {
+            return kEmptyJsonArray;
+        }
+        std::vector<RE::Actor*> actors;
+        actors.reserve(actorCount);
+        for (uint32_t i = 0; i < actorCount; ++i) {
+            if (actorFormIDs[i] != 0) {
+                if (auto* a = RE::TESForm::LookupByID<RE::Actor>(actorFormIDs[i])) {
+                    actors.push_back(a);
+                }
             }
         }
-        std::string json = VectorToJsonArray(StringUtils::SetToSortedVector(matching));
-        auto [insertedIt, _] = entry->actionsByTagJson.emplace( std::move(tagStr), std::move(json) );
-        return insertedIt->second;
+        if (actors.empty()) {
+            return kEmptyJsonArray;
+        }
+
+        auto settings = GetThreadDefaultSettings();
+        auto& furnitureDB = FurnitureDatabase::GetSingleton();
+        std::unordered_set<std::string> furnitureTypes = furnitureDB.IsLoaded()
+            ? furnitureDB.GetFurnitureTypesFromID(furnitureType ? furnitureType : "")
+            : std::unordered_set<std::string>{};
+
+        auto* entry = GetOrBuildSetupCacheFromActors(
+            actors, furnitureTypes, settings.useIntendedSex, settings.validateRequirements,
+            /*sortActorsForOStim=*/true);
+        return SelectActionsJsonFromEntry(entry, phaseOrTag);
     }
 
     SceneFilterResult SceneFilter::ApplyFilters(

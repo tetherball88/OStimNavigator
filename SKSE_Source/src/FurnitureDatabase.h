@@ -38,6 +38,8 @@ namespace OStimNavigator {
         FurnitureTypeData* GetFurnitureType(RE::TESObjectREFR* object);
         // Returns all furniture type IDs the actor can use (including supertypes via faction inheritance)
         std::unordered_set<std::string> GetFurnitureTypesFromActor(RE::Actor* actor);
+        // Returns all compatible furniture type IDs for a given furniture type ID (including supertypes/shared faction types)
+        std::unordered_set<std::string> GetFurnitureTypesFromID(const std::string& id);
         // Returns the single most specific furniture type ID for the actor (highest priority match), or empty string if none
         std::string GetFurnitureTypeFromActor(RE::Actor* actor);
         
