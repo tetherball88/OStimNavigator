@@ -1,0 +1,20 @@
+{
+  "id": "tetherball88.ostimnavigator",
+  "type": "bundle",
+  "title": "OStim Navigator",
+  "tagline": "In-game scene browser, editor, and LLM scene description generator for OStim.",
+  "description": "Provides an in-game OStim scene browser, JSON/metadata editor, and AI-assisted scene description generation prompt for OStimNet.",
+  "author": "tetherball88",
+  "tags": [
+    "ostim",
+    "animation",
+    "editor",
+    "adult"
+  ],
+  "nsfw": true,
+  "icon": "sparkles",
+  "version": "2.3.0",
+  "min_skyrimnet_version": "0.25.0",
+  "mods": []
+}
+
