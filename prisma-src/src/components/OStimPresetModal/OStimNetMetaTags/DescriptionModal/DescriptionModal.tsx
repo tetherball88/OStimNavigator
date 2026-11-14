@@ -3,7 +3,7 @@ import Editor, { OnMount } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
 import { useNavigatorStore } from '../../../../store/index'
 import './DescriptionModal.css'
-import { requestAutoDescriptionAsync, requestCustomDescriptionAsync, saveCustomDescriptionAsync, generateDescriptionAsync, GenerateDescriptionResult, notifyTextFocus } from '../../../../services/gameIntegration'
+import { requestAutoDescriptionAsync, requestCustomDescriptionAsync, saveCustomDescriptionAsync, generateDescriptionAsync, GenerateDescriptionResult } from '../../../../services/gameIntegration'
 import { SAFE_MONACO_CLIPBOARD_OPTIONS, restoreWordNavigation } from '../../../../services/clipboard'
 
 const DEV = import.meta.env.DEV
@@ -127,16 +127,12 @@ export function DescriptionModal({ sceneId }: DescriptionModalProps) {
     const handleAutoMount: OnMount = (ed, monaco) => {
         autoEditorRef.current = ed
         autoEditorRef.current?.setValue(autoDescription)
-        ed.onDidFocusEditorText(() => notifyTextFocus(true))
-        ed.onDidBlurEditorText(() => notifyTextFocus(false))
         restoreWordNavigation(ed, monaco)
     }
 
     const handleCustomMount: OnMount = (ed, monaco) => {
         customEditorRef.current = ed
         customEditorRef.current?.setValue(customOverride)
-        ed.onDidFocusEditorText(() => notifyTextFocus(true))
-        ed.onDidBlurEditorText(() => notifyTextFocus(false))
         ed.onDidChangeModelContent(() => {
             setCustomOverride(ed.getValue())
         })
@@ -243,8 +239,6 @@ export function DescriptionModal({ sceneId }: DescriptionModalProps) {
                             onChange={e => setAdditionalInstructions(e.target.value)}
                             rows={4}
                             autoFocus
-                            onFocus={() => notifyTextFocus(true)}
-                            onBlur={() => notifyTextFocus(false)}
                             onKeyDown={e => {
                                 if (e.key === 'Escape') setShowGenerateModal(false)
                             }}

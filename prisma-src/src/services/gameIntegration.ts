@@ -1,5 +1,6 @@
 import { StoreState, SceneSuggestions, OStimNetSuggestions } from '../store/types'
 import { SceneRow } from '../types'
+import { convertScanCodeToJS } from '../utils/scanCodeMap'
 
 declare global {
     interface Window {
@@ -30,13 +31,19 @@ declare global {
         updatePlayerThreadRunning?: (running: boolean) => void
         updateCurrentScene?: (sceneId: string) => void
         updateCurrentThread?: (data: string) => void
-        refocusView?: (unused?: string) => void
-        log?: (message: string) => void
+        toggleFocus?: () => void
+        forwardKey?: (payload: string) => void
         setTextInputFocus?: (focused: string) => void
+        setModalOpen?: (open: string) => void
+        updateKeys?: (data: string | { toggleNavigatorKey?: number }) => void
+        log?: (message: string) => void
     }
 }
 
-export function notifyTextFocus(focused: boolean) {
+let lastTextFocus = false
+export const notifyTextFocus = (focused: boolean) => {
+    if (lastTextFocus === focused) return
+    lastTextFocus = focused
     window.setTextInputFocus?.(focused ? 'true' : 'false')
 }
 
@@ -218,15 +225,11 @@ export function setupGameIntegration(store: StoreState) {
         }
     }
 
-    // Re-acquire focus when the user clicks inside the view after it lost focus
-    // (e.g. from an Escape press or another UI element stealing focus).
-    // Guard with document.hasFocus() — calling refocusView on every mousedown
-    // schedules an unnecessary game-thread task and can cause microstutters on hover.
-    document.addEventListener('mousedown', () => {
-        if (!document.hasFocus()) {
-            window.refocusView?.()
-        }
-    })
+    window.updateKeys = (data: string | { toggleNavigatorKey?: number }) => {
+        const parsed = typeof data === 'string' ? JSON.parse(data) : data
+        const rawKey = parsed?.toggleNavigatorKey ?? 0
+        store.setToggleNavigatorKey(rawKey > 0 ? convertScanCodeToJS(rawKey) : 0)
+    }
 }
 
 export function closeNavigatorView() {

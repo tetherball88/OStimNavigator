@@ -17,7 +17,6 @@
 #include "src/Papyrus.h"
 #include "src/SkyrimNetIntegration.h"
 #include "src/OStimNetIntegration.h"
-#include "src/KeyboardInputBlocker.h"
 #include "src/Settings.h"
 #include "src/PulloutSceneSearch.h"
 #include "src/SceneFilter.h"
@@ -86,12 +85,7 @@ SKSEPluginLoad(const LoadInterface* skse) {
                 switch (message->type) {
                     case SKSE::MessagingInterface::kPreLoadGame:
                         SKSE::log::debug("PreLoadGame...");
-                        OStimNavigator::PrismaUIManager::GetSingleton().Destroy();
-                        break;
-
-                    case SKSE::MessagingInterface::kInputLoaded:
-                        SKSE::log::debug("Input loaded — installing keyboard blocker hook...");
-                        KeyboardInputBlocker::Install();
+                        OStimNavigator::PrismaUIManager::GetSingleton().Hide();
                         break;
 
                     case SKSE::MessagingInterface::kPostLoadGame:

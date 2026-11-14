@@ -4,7 +4,7 @@ import type { Monaco } from '@monaco-editor/react'
 import type { editor, languages } from 'monaco-editor'
 import { SceneSuggestions } from '../../../store/types'
 import { useNavigatorStore } from '../../../store/index'
-import { requestSceneJsonAsync, saveSceneJsonAsync, notifyTextFocus } from '../../../services/gameIntegration'
+import { requestSceneJsonAsync, saveSceneJsonAsync } from '../../../services/gameIntegration'
 import ostimSceneSchema from '../../../schemas/ostimSceneJsonSchema.json'
 import { SAFE_MONACO_CLIPBOARD_OPTIONS, restoreWordNavigation } from '../../../services/clipboard'
 import './OStimJson.css'
@@ -120,9 +120,6 @@ export function OStimJson({ sceneId }: OStimJsonProps) {
     const handleEditorMount: OnMount = (ed, monaco) => {
         editorRef.current = ed
 
-        ed.onDidFocusEditorText(() => notifyTextFocus(true))
-        ed.onDidBlurEditorText(() => notifyTextFocus(false))
-
         restoreWordNavigation(ed, monaco)
 
         ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
@@ -177,11 +174,10 @@ export function OStimJson({ sceneId }: OStimJsonProps) {
             // not valid JSON — send as-is and let the backend reject it
         }
 
-        // Unfocus editable area so keyboard input is restored to the game/menu
+        // Unfocus editable area so keyboard input returns to navigation/UI shortcuts
         const domNode = editorRef.current?.getDomNode()
         domNode?.querySelector('textarea')?.blur()
         ;(document.activeElement as HTMLElement)?.blur()
-        notifyTextFocus(false)
 
         const ok = DEV ? true : await saveSceneJsonAsync(sceneId, value)
         setSaveStatus(ok ? 'saved' : 'failed')

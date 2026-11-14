@@ -1,0 +1,96 @@
+[center][size=6][b][color=#f4a261]🧭 OStim Navigator[/color][/b][/size]
+[size=4][i]Because clicking through 47 transitions to find "that one scene" is nobody's idea of fun[/i][/size]
+[size=2][color=#aaaaaa]Instant Scene Browser & Warping  •  Magelight UI Overlay & SKSE Menu Framework  •  In-Game Scene & OStimNet Editor[/color][/size][/center]
+
+[line]
+
+[size=5][b][color=#ff6b6b]The Problem[/color][/b][/size]
+You're 10 scenes deep into an OStim chain. Everything's going great. Then you think: [i]"Wait, wasn't there a missionary variant with slightly different positioning?"[/i]
+
+So you start clicking backward. Through transitions. Through idle animations. Through that awkward "repositioning" scene. You finally find a branch... and it's the [b]wrong[/b] branch. 15 scenes later, you've forgotten what you were even looking for.
+
+[line]
+
+[center][size=5][b][color=#4ecdc4]The Solution: Direct Navigation[/color][/b][/size][/center]
+
+[b]OStim Navigator[/b] indexes your entire installed OStim scene library and gives you a [b]real-time scene browser[/b] with [b]one-click warping[/b]—plus a built-in scene editor and smart search engine used by companion mods like [b]OStimNet[/b].
+
+[quote][b][color=#64b5f6]⚡ Now Powered by Magelight UI (v2.4.0)[/color][/b]
+The in-game overlay has migrated from Prisma UI to [b]Magelight UI[/b] for smoother rendering, zero performance cost when hidden, an offline Scene JSON editor, and seamless click-to-switch focus alongside [b]OStim Prism[/b].
+
+[b]Pick your UI:[/b] You don't need both! If you only want the [b]Magelight UI[/b] overlay, you don't need SKSE Menu Framework—and if you only use the classic [b]SKSE Menu Framework[/b] browser, you don't need Magelight UI.[/quote]
+
+[line]
+
+[size=5][b][color=#f4a261]🎯 Key Features[/color][/b][/size]
+
+[size=4][b][color=#ffd93d]1. Magelight UI Scene Browser & Editor (Recommended)[/color][/b][/size]
+Open it anytime during a scene from [b]OStim Options ➔ OStim Navigator ➔ Show Dev Editor[/b] ([url=https://github.com/tetherball88/OStimNavigator/blob/main/docs/navigator_65.gif]view GIF demo[/url]):
+[list]
+[*][b]Instant Search & Filtering:[/b] Filter thousands of scenes in real time by name, ID, modpack, actor count, gender setup, furniture, actions, or tags.[/*]
+[*][b]One-Click Warping:[/b] Jump straight to any compatible scene in the player's active thread—no transition chains required.[/*]
+[*][b]Plays Nice with OStim Prism:[/b] Have both overlays open? Just left-click between OStim Navigator and OStim Prism to switch keyboard focus back and forth without closing either menu. While browsing outside text fields, your OStim hotkeys still control the active scene.[/*]
+[*][b]Auto-Pause While Typing:[/b] Entering a search box or editor automatically pauses the game so Skyrim hotkeys don't interfere, then resumes as soon as you click away.[/*]
+[*][b]In-Game Scene JSON Editor (For Authors):[/b] Edit and hot-reload OStim scene JSONs directly in-game without restarting Skyrim (works completely offline).[/*]
+[*][b]OStimNet Metadata & Description Editor:[/b] View, write, or AI-generate scene descriptions, intents, and position tags for OStimNet right from the overlay.[/*]
+[/list]
+
+[size=4][b][color=#ffd93d]2. Classic SKSE Menu Framework Browser[/color][/b][/size]
+Still fully intact for players who prefer the SKSE Menu Framework (default [b]F1[/b] ➔ [i]OStim Navigator[/i] ➔ [i]Active Threads[/i]):
+[list]
+[*][b]Live Active Threads Monitor:[/b] See all active OStim threads, actors, and current scenes in real time.[/*]
+[*][b]Smart Similarity Scoring:[/b] Color-coded similarity ([color=#6bcf7f]Green = high[/color], [color=#f7b731]Yellow = medium[/color], [color=#fa8231]Orange = low[/color]) helps you find close variants of your current position.[/*]
+[*][b]Clickable Filter Pills:[/b] Click any action, actor tag, or scene tag from your current thread to filter instantly with [b]AND / OR[/b] logic.[/*]
+[*][b]Compatibility Filters:[/b] Hide transition/intro/idle/non-random scenes, filter by intended sex, or check actor requirements (vampire, body parts, etc.).[/*]
+[/list]
+
+[quote][color=#e69138][b]⚠️ Note on Compatibility Filters:[/b][/color] Disabling checks like [i]Actor Requirements[/i] lets you warp into scenes your actors might not normally qualify for (just like OStim's MCM overrides), so results may vary on specialized animations.[/quote]
+
+[size=4][b][color=#ffd93d]3. Smart Search Engine for Companion Mods[/color][/b][/size]
+Behind the scenes, OStim Navigator builds a fast indexed database of every installed animation, respecting your OStim MCM settings ([b]Unrestricted Navigation[/b] and [b]Intended Sex Only[/b]). Companion mods like [b]OStimNet[/b] rely on it for:
+[list]
+[*][b]Context-Aware Position & Activity Lookups:[/b] Ensures the AI only picks animations that actually exist in your load order for the current participants, furniture, and intimacy stage (Foreplay, Oral, Intercourse).[/*]
+[*][b]Pullout Scene Search:[/b] Finds pose-matched non-vaginal finish animations when an NPC or player pulls out.[/*]
+[/list]
+
+[line]
+
+[size=5][b][color=#f4a261]📥 Installation[/color][/b][/size]
+[list=1]
+[*]Install [b]OStim Standalone[/b] and your preferred UI requirement ([b]Magelight UI[/b] for the modern overlay, and/or [b]SKSE Menu Framework[/b] for the classic menu).[/*]
+[*]Install [b]OStim Navigator[/b] via your mod manager (or extract to your Skyrim [font=Courier New]Data[/font] folder).[/*]
+[*]The SKSE plugin loads automatically.[/*]
+[/list]
+
+[line]
+
+[size=5][b][color=#f4a261]🎮 Quick-Start Guide[/color][/b][/size]
+
+[b]Using the Magelight UI Overlay:[/b]
+[list=1]
+[*]Start an OStim scene and open [b]OStim Options ➔ OStim Navigator ➔ Show Dev Editor[/b].[/*]
+[*]Search or filter for a scene and click [b]Warp[/b] to jump right to it.[/*]
+[*]Need to adjust OStim Prism at the same time? Click OStim Prism to use it, then click back on Navigator whenever you're ready.[/*]
+[/list]
+
+[b]Using the SKSE Menu Framework Browser:[/b]
+[list=1]
+[*]Open SKSE Menu Framework (default [b]F1[/b]) ➔ [b]OStim Navigator[/b] ➔ [b]Active Threads[/b].[/*]
+[*]Click [b]Explore[/b] on any active thread, click tag pills or set filters, and click [b]Warp[/b].[/*]
+[/list]
+
+[size=4][b][color=#ff6b6b]⚠️ Known Issue (SKSE Menu Framework Only)[/color][/b][/size]
+[quote]If SKSE Menu Framework is set to [b]pause the game[/b], actors may not undress properly when warping.
+[b]Fix:[/b] In SKSE Menu Framework settings (top-left dropdown), disable game pausing.[/quote]
+
+[line]
+
+[size=5][b][color=#f4a261]🔧 Source & Support[/color][/b][/size]
+[b][url=https://github.com/tetherball88/OStimNavigator]Source Code on GitHub[/url][/b]
+
+[center][size=5][b]Questions? Issues? Requests?[/b][/size]
+[size=3]Drop a comment below or check the Posts tab![/size][/center]
+
+[line]
+
+[center][size=2][i]Made with ☕ and way too much time spent clicking through OStim navigation trees[/i][/size][/center]

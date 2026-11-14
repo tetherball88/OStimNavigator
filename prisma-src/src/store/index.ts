@@ -34,6 +34,9 @@ export const useNavigatorStore = create<StoreState>()(
         visible: false,
         setVisible: (visible) => set({ visible }),
 
+        toggleNavigatorKey: 0,
+        setToggleNavigatorKey: (toggleNavigatorKey) => set({ toggleNavigatorKey }),
+
         scenes: [],
         setScenes: (scenes) => set({ scenes }),
         setSceneHasCustomDescription: (sceneId, hasDescription) => set(state => ({

@@ -1,5 +1,4 @@
 #include "PrismaUIManager.h"
-#include "KeyboardInputBlocker.h"
 #include "Settings.h"
 #include "ActionDatabase.h"
 #include "OStimNetMetaData.h"
@@ -9,9 +8,15 @@
 #include "SkyrimNetIntegration.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
-#include <fstream>
-#include <thread>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <string_view>
+#include <thread>
+#include <type_traits>
+#include <utility>
+#include <Windows.h>
 
 namespace {
 
@@ -35,6 +40,41 @@ namespace {
         }
         void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override {}
     };
+
+    std::string GetPagePath() {
+        wchar_t buf[MAX_PATH]{};
+        GetModuleFileNameW(nullptr, buf, MAX_PATH);
+        auto p = std::filesystem::path(buf).parent_path()
+               / L"Data" / L"Magelight" / L"OStimNavigator" / L"views" / L"OStimNavigator" / L"index.html";
+        const auto u = p.u8string();
+        return std::string(reinterpret_cast<const char*>(u.data()), u.size());
+    }
+
+    template <typename FnType>
+    void GameTaskTrampoline(void* user) {
+        std::unique_ptr<FnType> fn(static_cast<FnType*>(user));
+        (*fn)();
+    }
+
+    template <typename Callable>
+    void PostToGameThread(Callable&& callable) {
+        using FnType = std::decay_t<Callable>;
+        auto* heapFn = new FnType(std::forward<Callable>(callable));
+
+        auto* ml = OStimNavigator::PrismaUIManager::GetSingleton().GetMagelight();
+        if (ml && ml->hostVersionNumber >= 3001) {
+            if (ml->PostGameTask(&GameTaskTrampoline<FnType>, heapFn) != MAGELIGHT_API::Result::Ok) {
+                delete heapFn;
+            }
+        } else {
+            std::thread([heapFn]() {
+                SKSE::GetTaskInterface()->AddTask([heapFn]() {
+                    std::unique_ptr<FnType> fn(heapFn);
+                    (*fn)();
+                });
+            }).detach();
+        }
+    }
 }
 
 namespace OStimNavigator {
@@ -163,33 +203,53 @@ namespace OStimNavigator {
         }
     }
 
-    void PrismaUIManager::SetGamePaused(bool pause) {
-        if (pause) {
-            if (!m_pausedGame) {
-                if (auto* ui = RE::UI::GetSingleton()) {
-                    ui->numPausesGame++;
-                    m_pausedGame = true;
-                    SKSE::log::debug("PrismaUIManager: game paused (numPausesGame={})", ui->numPausesGame);
-                }
+    bool PrismaUIManager::HasFocus() const {
+        if (hasUIMode.load()) return true;
+        return magelight && modId != 0 && magelight->GetUIModeOwner() == modId;
+    }
+
+    void PrismaUIManager::SetFocus(bool shouldFocus) {
+        if (!IsViewValid()) return;
+
+        if (shouldFocus) {
+            magelight->RaiseView(view);
+            std::uint32_t flags = MAGELIGHT_API::kUIModeFlagNone;
+            if (magelight->hostVersionNumber >= 10100 && magelight->QueryCapability("uimodecancel") == 1) {
+                flags |= MAGELIGHT_API::kUIModeFlagReclaim;
             }
+            auto res = magelight->RequestUIMode(view, flags);
+            if (res != MAGELIGHT_API::Result::Ok) {
+                SKSE::log::warn("Magelight RequestUIMode refused ({}): {}",
+                    static_cast<int>(res), magelight->GetLastErrorMessage(modId));
+            }
+            SyncConsoleLayering();
         } else {
-            if (m_pausedGame) {
-                if (auto* ui = RE::UI::GetSingleton()) {
-                    if (ui->numPausesGame > 0) {
-                        ui->numPausesGame--;
-                    }
-                    SKSE::log::debug("PrismaUIManager: game unpaused (numPausesGame={})", ui->numPausesGame);
-                }
-                m_pausedGame = false;
+            if (magelight->hostVersionNumber >= 10100 && magelight->QueryCapability("uimodecancel") == 1) {
+                magelight->CancelUIModeRequest(modId);
             }
+            magelight->ReleaseUIMode(modId);
+            hasUIMode.store(false);
+            SetGamePaused(false);
+            SyncConsoleLayering();
         }
+    }
+
+    void PrismaUIManager::UpdateKeys() {
+        if (!IsViewValid()) return;
+
+        nlohmann::json j = {
+            {"toggleNavigatorKey", Settings::GetSingleton().toggleNavigatorKey}
+        };
+        InvokeScript(("updateKeys(" + j.dump() + ")").c_str());
     }
 
     RE::BSEventNotifyControl PrismaUIManager::ProcessEvent(
         RE::InputEvent* const* a_event,
         RE::BSTEventSource<RE::InputEvent*>* /*a_source*/)
     {
-        if (!a_event || !*a_event) return RE::BSEventNotifyControl::kContinue;
+        if (!a_event || !*a_event || !IsViewValid() || !isCurrentlyVisible || HasFocus()) {
+            return RE::BSEventNotifyControl::kContinue;
+        }
 
         const uint32_t hotkeyCode = Settings::GetSingleton().toggleNavigatorKey;
         if (hotkeyCode == 0) return RE::BSEventNotifyControl::kContinue;
@@ -206,24 +266,94 @@ namespace OStimNavigator {
             const uint32_t INVALID_THREAD = static_cast<uint32_t>(-1);
             if (iface->GetPlayerThreadID() == INVALID_THREAD) continue;
 
-            // Toggle: show and focus if not visible, hide if visible.
-            SKSE::GetTaskInterface()->AddTask([]() {
-                auto& mgr = PrismaUIManager::GetSingleton();
-                if(mgr.prismaUI && mgr.IsViewValid()) {
-                    if (mgr.prismaUI->HasFocus(mgr.view)) {
-                        SKSE::log::debug("PrismaUIManager: hotkey Unfocus(view={})", mgr.view);
-                        mgr.prismaUI->Unfocus(mgr.view);
-                    } else {
-                        SKSE::log::debug("PrismaUIManager: hotkey Focus(view={})", mgr.view);
-                        mgr.prismaUI->Focus(mgr.view);
-                    }
-                    mgr.CheckTextInputFocus();
-                }
-                
-            });
+            SKSE::log::debug("PrismaUIManager: hotkey SetFocus(true) (view={})", view);
+            SetFocus(true);
+            break;
         }
 
         return RE::BSEventNotifyControl::kContinue;
+    }
+
+    RE::BSEventNotifyControl PrismaUIManager::ProcessEvent(
+        const RE::MenuOpenCloseEvent* a_event,
+        RE::BSTEventSource<RE::MenuOpenCloseEvent>* /*a_source*/)
+    {
+        if (!a_event) {
+            return RE::BSEventNotifyControl::kContinue;
+        }
+
+        const std::string_view name = a_event->menuName.c_str() ? a_event->menuName.c_str() : "";
+        if (name == RE::Console::MENU_NAME || name == "MagelightOverlay" || name == "MagelightFocus") {
+            SyncConsoleLayering();
+        }
+
+        return RE::BSEventNotifyControl::kContinue;
+    }
+
+    void PrismaUIManager::SetGamePaused(bool pause) {
+        desiredGamePause.store(pause);
+        PostToGameThread([this]() {
+            const bool wantPause = desiredGamePause.load() && isCurrentlyVisible && hasUIMode.load();
+            if (wantPause == appliedGamePause) {
+                return;
+            }
+            if (auto* ui = RE::UI::GetSingleton()) {
+                if (wantPause) {
+                    ++ui->numPausesGame;
+                    appliedGamePause = true;
+                } else {
+                    if (ui->numPausesGame > 0) {
+                        --ui->numPausesGame;
+                    }
+                    appliedGamePause = false;
+                }
+                SKSE::log::debug("PrismaUIManager: game pause -> {} (numPausesGame={})",
+                    appliedGamePause, ui->numPausesGame);
+            }
+        });
+    }
+
+    void PrismaUIManager::SyncConsoleLayering() {
+        PostToGameThread([this]() {
+            auto* ui = RE::UI::GetSingleton();
+            if (!ui) return;
+
+            auto overlayMenu = ui->GetMenu("MagelightOverlay");
+            auto consoleMenu = ui->GetMenu(RE::Console::MENU_NAME);
+
+            // Render MagelightOverlay above Skyrim's native Console (depth 12, below Cursor Menu at 13)
+            // whenever OStim Navigator is visible, and restore Magelight's default (9) when hidden.
+            if (overlayMenu) {
+                overlayMenu->depthPriority = isCurrentlyVisible ? 12 : 9;
+            }
+
+            if (consoleMenu) {
+                consoleMenu->depthPriority = (isCurrentlyVisible && HasFocus()) ? 9 : 12;
+            }
+
+            if (overlayMenu && consoleMenu) {
+                std::ptrdiff_t overlayIdx = -1;
+                std::ptrdiff_t consoleIdx = -1;
+                for (std::uint32_t i = 0; i < ui->menuStack.size(); ++i) {
+                    if (ui->menuStack[i].get() == overlayMenu.get()) {
+                        overlayIdx = static_cast<std::ptrdiff_t>(i);
+                    } else if (ui->menuStack[i].get() == consoleMenu.get()) {
+                        consoleIdx = static_cast<std::ptrdiff_t>(i);
+                    }
+                }
+                if (isCurrentlyVisible && overlayIdx >= 0 && consoleIdx >= 0 && overlayIdx < consoleIdx) {
+                    std::rotate(
+                        ui->menuStack.begin() + overlayIdx,
+                        ui->menuStack.begin() + overlayIdx + 1,
+                        ui->menuStack.begin() + consoleIdx + 1);
+                } else if (!isCurrentlyVisible && overlayIdx >= 0 && consoleIdx >= 0 && overlayIdx > consoleIdx) {
+                    std::rotate(
+                        ui->menuStack.begin() + consoleIdx,
+                        ui->menuStack.begin() + overlayIdx,
+                        ui->menuStack.begin() + overlayIdx + 1);
+                }
+            }
+        });
     }
 
     // ─── public interface ────────────────────────────────────────────────────
@@ -233,116 +363,162 @@ namespace OStimNavigator {
             return;
         }
 
-        auto api = PRISMA_UI_API::RequestPluginAPI(PRISMA_UI_API::InterfaceVersion::V1);
+        auto api = MAGELIGHT_API::RequestApi4();
         if (!api) {
-            SKSE::log::info("PrismaUI not available — OStim Navigator will run without Prisma UI");
+            SKSE::log::info("Magelight UI not available — OStim Navigator will run without Magelight UI");
             return;
         }
 
-        prismaUI = static_cast<PRISMA_UI_API::IVPrismaUI1*>(api);
+        MAGELIGHT_API::ModDesc desc{};
+        desc.size = sizeof(desc);
+        desc.modId = "OStimNavigator";
+        desc.displayName = "OStim Navigator";
+        desc.modVersion = MAGELIGHT_API::PackVersion(0, 0, 1);
+        desc.minHostVersion = MAGELIGHT_API::PackVersion(0, 28, 0);
+        desc.callbackThread = MAGELIGHT_API::CallbackThread::GameThread;
+        desc.onEvent = &PrismaUIManager::OnMagelightEvent;
+        desc.onLog = nullptr;
+        desc.user = this;
+        desc.sessionName = nullptr;
+
+        MAGELIGHT_API::ModId registeredMod = 0;
+        auto res = api->RegisterMod(&desc, &registeredMod);
+        if (res != MAGELIGHT_API::Result::Ok || !registeredMod) {
+            SKSE::log::error("Failed to register OStimNavigator with Magelight UI (result={})", static_cast<int>(res));
+            return;
+        }
+
+        magelight = api;
+        modId = registeredMod;
         initialized = true;
-        SKSE::log::info("PrismaUI initialized successfully for OStim Navigator");
+        SKSE::log::info("Magelight UI (host {}) initialized successfully for OStim Navigator (modId={})",
+            magelight->hostVersion ? magelight->hostVersion : "?", modId);
+
+        const std::string pagePath = GetPagePath();
+        MAGELIGHT_API::ViewDesc vd{};
+        vd.size = sizeof(vd);
+        vd.name = "OStimNavigator";
+        vd.htmlPath = pagePath.c_str();
+        vd.anchor = MAGELIGHT_API::Anchor::TopLeft;
+        vd.fullscreen = true;
+        vd.clickThrough = false;
+        vd.startVisible = false;
+        vd.layer = MAGELIGHT_API::Layer::Popup;
+        vd.uiScale = 0.0f;
+        vd.onDomReady = nullptr;
+
+        MAGELIGHT_API::ViewId newView = 0;
+        res = magelight->CreateViewEx(modId, &vd, &newView);
+        if (res != MAGELIGHT_API::Result::Ok || !newView) {
+            SKSE::log::error("Failed to create Magelight view ({}): {}",
+                static_cast<int>(res), magelight->GetLastErrorMessage(modId));
+            return;
+        }
+
+        view = newView;
+        isCurrentlyVisible = false;
+        domReady = false;
+        pendingShowOnDomReady = false;
+
+        magelight->RegisterJSListener(view, "saveSceneJson",            OnSaveSceneJson);
+        magelight->RegisterJSListener(view, "requestSceneJson",         OnRequestSceneJson);
+        magelight->RegisterJSListener(view, "requestAutoDescription",   OnRequestAutoDescription);
+        magelight->RegisterJSListener(view, "requestCustomDescription", OnRequestCustomDescription);
+        magelight->RegisterJSListener(view, "saveCustomDescription",    OnSaveCustomDescription);
+        magelight->RegisterJSListener(view, "requestSceneMeta",         OnRequestSceneMeta);
+        magelight->RegisterJSListener(view, "saveSceneMeta",            OnSaveSceneMeta);
+        magelight->RegisterJSListener(view, "closeNavigator",           OnCloseNavigator);
+        magelight->RegisterJSListener(view, "warpToScene",              OnWarpToScene);
+        magelight->RegisterJSListener(view, "toggleFocus",              OnToggleFocus);
+        magelight->RegisterJSListener(view, "forwardKey",               OnForwardKey);
+        magelight->RegisterJSListener(view, "setTextInputFocus",        OnSetTextInputFocus);
+        magelight->RegisterJSListener(view, "setModalOpen",             OnSetModalOpen);
+        magelight->RegisterJSListener(view, "generateDescription",      OnGenerateDescription);
+        magelight->RegisterJSListener(view, "log",                      OnLog);
+
+        if (magelight->hostVersionNumber >= 2800 && magelight->QueryCapability("escapecapture") == 1) {
+            magelight->SetEscapeCapture(view, true);
+        }
+
+        if (magelight->hostVersionNumber >= 3111 && magelight->QueryCapability("prepaint") == 1) {
+            magelight->SetViewPrepaint(view, true);
+        }
+
+        if (magelight->hostVersionNumber >= 10900 && magelight->QueryCapability("focusShare") == 1) {
+            magelight->SetViewFocusSharing(view, MAGELIGHT_API::kFocusShareGive | MAGELIGHT_API::kFocusShareTake);
+        }
+
+        SKSE::log::info("Magelight persistent view created for OStim Navigator: {} ({})", newView, pagePath);
 
         // Register for OStim thread events so we can track scene changes.
         if (auto* iface = OStimIntegration::GetSingleton().GetThreadInterface()) {
             iface->RegisterEventCallback(OnOStimThreadEvent, nullptr);
             SKSE::log::debug("PrismaUIManager: registered OStim thread event callback");
         }
-    }
 
-    void PrismaUIManager::Show() {
-        if (!prismaUI) {
-            return;
+        if (auto* ui = RE::UI::GetSingleton()) {
+            ui->AddEventSink<RE::MenuOpenCloseEvent>(this);
         }
-
-        if (view && prismaUI->IsValid(view)) {
-            prismaUI->Show(view);
-            if(!prismaUI->HasFocus(view)) {
-                prismaUI->Focus(view);
-            }
-            return;
-        }
-
-        auto newView = prismaUI->CreateView("OStimNavigator/index.html", OnDomReady);
-        if (!newView) {
-            SKSE::log::error("Failed to create PrismaUI view for OStim Navigator");
-            return;
-        }
-
-        view = newView;
-        prismaUI->RegisterJSListener(view, "saveSceneJson",        OnSaveSceneJson);
-        prismaUI->RegisterJSListener(view, "requestSceneJson",    OnRequestSceneJson);
-        prismaUI->RegisterJSListener(view, "requestAutoDescription", OnRequestAutoDescription);
-        prismaUI->RegisterJSListener(view, "requestCustomDescription", OnRequestCustomDescription);
-        prismaUI->RegisterJSListener(view, "saveCustomDescription",    OnSaveCustomDescription);
-        prismaUI->RegisterJSListener(view, "requestSceneMeta",         OnRequestSceneMeta);
-        prismaUI->RegisterJSListener(view, "saveSceneMeta",            OnSaveSceneMeta);
-        prismaUI->RegisterJSListener(view, "closeNavigator",       OnCloseNavigator);
-        prismaUI->RegisterJSListener(view, "warpToScene",          OnWarpToScene);
-        prismaUI->RegisterJSListener(view, "refocusView",          OnRefocusView);
-        prismaUI->RegisterJSListener(view, "generateDescription",  OnGenerateDescription);
-        prismaUI->RegisterJSListener(view, "log",                  OnLog);
-        prismaUI->RegisterJSListener(view, "setTextInputFocus",      OnSetTextInputFocus);
-        SKSE::log::info("PrismaUI view created for OStim Navigator: {}", newView);
 
         StartListeningInput();
     }
 
-    void PrismaUIManager::Hide() {
-        if (!prismaUI || !view) {
+    void PrismaUIManager::Show() {
+        if (!IsViewValid()) {
             return;
         }
 
-        SetTextInputFocus(false);
-        KeyboardInputBlocker::SetBlocking(false);
-        SetGamePaused(false);
+        magelight->ShowView(view, true);
+        magelight->RaiseView(view);
+        isCurrentlyVisible = true;
+        SyncViewBounds();
+        if (!HasFocus()) {
+            SetFocus(true);
+        }
+        SyncConsoleLayering();
 
-        if (prismaUI->IsValid(view)) {
-            prismaUI->Hide(view);
+        if (!domReady) {
+            pendingShowOnDomReady = true;
+            return;
+        }
+
+        pendingShowOnDomReady = false;
+        InvokeScript("showNavigator()");
+        UpdateKeys();
+        UpdateScenes();
+        UpdateSceneSuggestions();
+        UpdateOStimNetSuggestions();
+
+        // Query whether the player's thread (ID 0) is currently running and
+        // tell the UI so it can show the warp-to-scene button column.
+        auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+        if (vm) {
+            auto* args = RE::MakeFunctionArguments((int)0);
+            RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> cb =
+                RE::make_smart<IsRunningCallback>();
+            vm->DispatchStaticCall("OThread", "IsRunning", args, cb);
+            delete args;
         }
     }
 
-    void PrismaUIManager::Destroy() {
-        if (!prismaUI || !view) {
+    void PrismaUIManager::Hide() {
+        if (!IsViewValid()) {
             return;
         }
 
-        // Ensure keyboard blocking is released if a text input was focused.
-        SetTextInputFocus(false);
-        KeyboardInputBlocker::SetBlocking(false);
-        SetGamePaused(false);
-        StopListeningInput();
+        pendingShowOnDomReady = false;
 
-        if (prismaUI->IsValid(view)) {
-            SKSE::log::debug("PrismaUIManager: Destroy Unfocus(view={}, hasFocus={})", view, prismaUI->HasFocus(view));
-            prismaUI->Unfocus(view);
-            prismaUI->Hide(view);
+        if (HasFocus()) {
+            SetFocus(false);
+        } else if (magelight->hostVersionNumber >= 10100 && magelight->QueryCapability("uimodecancel") == 1) {
+            magelight->CancelUIModeRequest(modId);
         }
 
-        PrismaView viewToDestroy = view;
-        view = 0;  // mark invalid immediately so no new tasks use it
-
-        // Unfocus is asynchronous — poll until focus is actually released, then destroy.
-        std::thread([this, viewToDestroy]() {
-            auto stillFocused = std::make_shared<std::atomic<bool>>(true);
-            int maxWaitMs = 2000;
-            int waited = 0;
-            while (waited < maxWaitMs) {
-                SKSE::GetTaskInterface()->AddTask([this, viewToDestroy, stillFocused]() {
-                    stillFocused->store(prismaUI && prismaUI->IsValid(viewToDestroy) && prismaUI->HasFocus(viewToDestroy));
-                });
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                waited += 100;
-                if (!stillFocused->load()) break;
-                SKSE::log::debug("PrismaUIManager: waiting for unfocus... ({}ms)", waited);
-            }
-            SKSE::GetTaskInterface()->AddTask([this, viewToDestroy]() {
-                if (prismaUI && prismaUI->IsValid(viewToDestroy)) {
-                    SKSE::log::debug("PrismaUIManager: Destroy(view={})", viewToDestroy);
-                    prismaUI->Destroy(viewToDestroy);
-                }
-            });
-        }).detach();
+        InvokeScript("hideNavigator()");
+        magelight->ShowView(view, false);
+        isCurrentlyVisible = false;
+        SetGamePaused(false);
+        SyncConsoleLayering();
     }
 
     void PrismaUIManager::UpdateSceneSuggestions() {
@@ -448,32 +624,102 @@ namespace OStimNavigator {
         }
     }
 
-    void PrismaUIManager::OnDomReady(PrismaView /*view*/) {
-        SKSE::log::info("OStim Navigator PrismaUI DOM ready");
-        SKSE::GetTaskInterface()->AddTask([]() {
-            auto& mgr = PrismaUIManager::GetSingleton();
-            if (!mgr.IsViewValid()) return;
-            if(!mgr.prismaUI->HasFocus(mgr.view)) {
-                SKSE::log::debug("PrismaUIManager: OnDomReady Focus(view={})", mgr.view);
-                mgr.prismaUI->Focus(mgr.view);
-            }
-            mgr.InvokeScript("showNavigator()");
-            mgr.UpdateScenes();
-            mgr.UpdateSceneSuggestions();
-            mgr.UpdateOStimNetSuggestions();
-            mgr.UpdateOStimNetSuggestions();
+    void PrismaUIManager::OnMagelightEvent(const MAGELIGHT_API::EventData* ev, void* user) {
+        auto* mgr = static_cast<PrismaUIManager*>(user);
+        if (!mgr || !ev || !mgr->magelight) {
+            return;
+        }
 
-            // Query whether the player's thread (ID 0) is currently running and
-            // tell the UI so it can show the warp-to-scene button column.
-            auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
-            if (vm) {
-                auto* args = RE::MakeFunctionArguments((int)0);
-                RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> cb =
-                    RE::make_smart<IsRunningCallback>();
-                vm->DispatchStaticCall("OThread", "IsRunning", args, cb);
-                delete args;
+        switch (ev->type) {
+            case MAGELIGHT_API::Event::ViewDomReady:
+            case MAGELIGHT_API::Event::ViewReloaded: {
+                if (ev->view != mgr->view) return;
+                SKSE::log::info("OStim Navigator Magelight view {} {}: syncing state",
+                    ev->view, ev->type == MAGELIGHT_API::Event::ViewDomReady ? "DOM ready" : "reloaded");
+
+                mgr->domReady = true;
+                mgr->SyncViewBounds();
+                mgr->UpdateKeys();
+                mgr->UpdateSceneSuggestions();
+                mgr->UpdateOStimNetSuggestions();
+                mgr->UpdateScenes();
+
+                if (mgr->isCurrentlyVisible || mgr->pendingShowOnDomReady) {
+                    mgr->pendingShowOnDomReady = false;
+                    mgr->Show();
+                }
+                break;
             }
-        });
+
+            case MAGELIGHT_API::Event::UIModeEntered: {
+                if (ev->view == mgr->view) {
+                    mgr->hasUIMode.store(true);
+                    mgr->hasKeyFocus.store(true);
+                    SKSE::log::debug("Magelight UI mode entered for OStim Navigator (view={})", ev->view);
+                    if (!mgr->isCurrentlyVisible) {
+                        mgr->Hide();
+                    } else {
+                        mgr->SyncConsoleLayering();
+                    }
+                }
+                break;
+            }
+
+            case MAGELIGHT_API::Event::UIModeExited:
+            case MAGELIGHT_API::Event::UIModeRefused: {
+                mgr->hasUIMode.store(false);
+                mgr->hasKeyFocus.store(false);
+                mgr->SetGamePaused(false);
+                mgr->SyncConsoleLayering();
+                SKSE::log::debug("Magelight UI mode exited/refused (view={}, detail='{}')",
+                    ev->view, ev->detail ? ev->detail : "");
+                break;
+            }
+
+            case MAGELIGHT_API::Event::KeyFocusGained: {
+                if (ev->view == mgr->view) {
+                    mgr->hasKeyFocus.store(true);
+                    SKSE::log::debug("Magelight key focus gained for OStim Navigator (view={}, from={}, mod='{}')",
+                        ev->view, ev->x, ev->detail ? ev->detail : "");
+                }
+                break;
+            }
+
+            case MAGELIGHT_API::Event::KeyFocusLost: {
+                if (ev->view == mgr->view) {
+                    mgr->hasKeyFocus.store(false);
+                    mgr->SetGamePaused(false);
+                    SKSE::log::debug("Magelight key focus lost for OStim Navigator (view={}, to={}, mod='{}')",
+                        ev->view, ev->x, ev->detail ? ev->detail : "");
+                }
+                break;
+            }
+
+            case MAGELIGHT_API::Event::ViewDestroyed:
+            case MAGELIGHT_API::Event::RenderDead:
+            case MAGELIGHT_API::Event::HostShutdown: {
+                mgr->hasUIMode.store(false);
+                mgr->hasKeyFocus.store(false);
+                mgr->isCurrentlyVisible = false;
+                mgr->pendingShowOnDomReady = false;
+                mgr->domReady = false;
+                mgr->SetGamePaused(false);
+                mgr->SyncConsoleLayering();
+                if (ev->type == MAGELIGHT_API::Event::ViewDestroyed && ev->view == mgr->view) {
+                    mgr->view = 0;
+                }
+                break;
+            }
+
+            case MAGELIGHT_API::Event::ViewLoadFailed: {
+                SKSE::log::error("Magelight view {} failed to load: {}",
+                    ev->view, ev->detail ? ev->detail : "unknown error");
+                break;
+            }
+
+            default:
+                break;
+        }
     }
 
     // window.saveSceneJson(JSON.stringify({id, content})) → single-argument payload
@@ -494,7 +740,7 @@ namespace OStimNavigator {
         SKSE::log::info("OStim Navigator: saving scene JSON for '{}'", sceneId);
 
         // Look up the file path on the game thread (fast in-memory map lookup).
-        SKSE::GetTaskInterface()->AddTask([sceneId, content]() {
+        PostToGameThread([sceneId, content]() {
             auto& mgr = PrismaUIManager::GetSingleton();
 
             auto filePath = SceneDatabase::GetSingleton().FindSceneFilePath(sceneId);
@@ -612,13 +858,120 @@ namespace OStimNavigator {
         }
     }
 
-    void PrismaUIManager::OnRefocusView(const char* /*unused*/) {
-        SKSE::GetTaskInterface()->AddTask([]() {
+    void PrismaUIManager::OnToggleFocus(const char* /*unused*/) {
+        PostToGameThread([]() {
             auto& mgr = PrismaUIManager::GetSingleton();
-            if (mgr.IsViewValid() && !mgr.prismaUI->HasFocus(mgr.view)) {
-                SKSE::log::debug("PrismaUIManager: OnRefocusView Focus(view={})", mgr.view);
-                mgr.prismaUI->Focus(mgr.view);
+            if (mgr.IsViewValid()) {
+                mgr.SetFocus(!mgr.HasFocus());
             }
+        });
+    }
+
+    void PrismaUIManager::OnForwardKey(const char* argument) {
+        if (!argument || !*argument) return;
+
+        uint32_t scanCode = 0;
+        bool isDown = false;
+        try {
+            auto j = nlohmann::json::parse(argument);
+            scanCode = j.at("scanCode").get<uint32_t>();
+            isDown = j.at("isDown").get<bool>();
+        } catch (const std::exception& e) {
+            SKSE::log::error("OStim Navigator: invalid forwardKey payload: {}", e.what());
+            return;
+        }
+
+        if (scanCode == 0) return;
+
+        PostToGameThread([scanCode, isDown]() {
+            auto* dm = RE::BSInputDeviceManager::GetSingleton();
+            if (!dm) return;
+
+            auto* btn = RE::ButtonEvent::Create(
+                RE::INPUT_DEVICE::kKeyboard,
+                RE::BSFixedString(""),
+                scanCode,
+                isDown ? 1.0f : 0.0f,
+                isDown ? 0.0f : 0.1f);
+            if (!btn) return;
+
+            // Snapshot sinks instead of calling dm->SendEvent(&ev), because
+            // Magelight's InputSink unlinks every keyboard event in-place while
+            // any view holds UI mode before downstream mod sinks (OStimPrism) run.
+            std::vector<RE::BSTEventSink<RE::InputEvent*>*> sinks;
+            {
+                RE::BSSpinLockGuard locker(dm->lock);
+                sinks.reserve(dm->sinks.size());
+                for (auto* s : dm->sinks) {
+                    if (s) {
+                        sinks.push_back(s);
+                    }
+                }
+            }
+
+            auto* selfSink = static_cast<RE::BSTEventSink<RE::InputEvent*>*>(&PrismaUIManager::GetSingleton());
+            HMODULE hGame = GetModuleHandleW(nullptr);
+            HMODULE hMagelight = GetModuleHandleW(L"Magelight.dll");
+
+            for (auto* sink : sinks) {
+                if (!sink || sink == selfSink) continue;
+
+                const void* vtbl = *reinterpret_cast<const void* const*>(sink);
+                HMODULE hSinkMod = nullptr;
+                if (GetModuleHandleExW(
+                        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                        reinterpret_cast<LPCWSTR>(vtbl),
+                        &hSinkMod)) {
+                    if (hSinkMod == hGame || (hMagelight && hSinkMod == hMagelight)) {
+                        continue;
+                    }
+                }
+
+                btn->next = nullptr;
+                RE::InputEvent* ev = btn;
+                sink->ProcessEvent(&ev, dm);
+            }
+
+            RE::free(btn);
+        });
+    }
+
+    void PrismaUIManager::OnSetTextInputFocus(const char* argument) {
+        const bool focused = (argument && std::string_view(argument) == "true");
+        GetSingleton().SetGamePaused(focused);
+    }
+
+    void PrismaUIManager::SyncViewBounds() {
+        if (!IsViewValid()) return;
+        std::int32_t dispW = 0;
+        std::int32_t dispH = 0;
+        magelight->GetDisplaySize(&dispW, &dispH);
+        if (dispW <= 0 || dispH <= 0) return;
+
+        if (isModalOpen) {
+            magelight->SetViewBounds(view, 0, 0, dispW, dispH);
+            if (domReady) {
+                InvokeScript("document.body.classList.remove('drawer-bounded');document.documentElement.style.removeProperty('--text-scale');");
+            }
+        } else {
+            const std::int32_t drawerW = std::min(dispW, std::max<std::int32_t>(600, (dispW * 30) / 100));
+            const std::int32_t drawerX = dispW - drawerW;
+            magelight->SetViewBounds(view, drawerX, 0, drawerW, dispH);
+            if (domReady) {
+                const double scalePx = std::max(std::min(dispW * 0.0085, 30.0), 24.0);
+                InvokeScript(("document.body.classList.add('drawer-bounded');document.documentElement.style.setProperty('--text-scale','" +
+                    std::to_string(scalePx) + "px');").c_str());
+            }
+        }
+    }
+
+    void PrismaUIManager::OnSetModalOpen(const char* argument) {
+        const bool open = (argument && std::string_view(argument) == "true");
+        PostToGameThread([open]() {
+            auto& mgr = GetSingleton();
+            if (mgr.isModalOpen == open) return;
+            mgr.isModalOpen = open;
+            mgr.SyncViewBounds();
         });
     }
 
@@ -627,7 +980,7 @@ namespace OStimNavigator {
         std::string id(sceneId);
         SKSE::log::info("OStim Navigator: warp player thread to '{}'", id);
 
-        SKSE::GetTaskInterface()->AddTask([id]() {
+        PostToGameThread([id]() {
             auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
             if (vm) {
                 auto* args = RE::MakeFunctionArguments((int)0, std::string(id), false);
@@ -641,7 +994,7 @@ namespace OStimNavigator {
 
     void PrismaUIManager::OnCloseNavigator(const char* /*unused*/) {
         SKSE::log::debug("OStim Navigator: close requested from UI");
-        SKSE::GetTaskInterface()->AddTask([]() {
+        PostToGameThread([]() {
             PrismaUIManager::GetSingleton().Hide();
         });
     }
@@ -663,7 +1016,7 @@ namespace OStimNavigator {
         SKSE::log::debug("OStim Navigator: generateDescription for '{}'", id);
 
         // Build context JSON on the game thread — SceneDatabase is not thread-safe.
-        SKSE::GetTaskInterface()->AddTask([id, additionalInstructions]() {
+        PostToGameThread([id, additionalInstructions]() {
             nlohmann::json ctx;
             ctx["sceneId"]                = id;
             ctx["additionalInstructions"] = additionalInstructions;
@@ -723,63 +1076,18 @@ namespace OStimNavigator {
         });
     }
 
-    void PrismaUIManager::CheckTextInputFocus() {
-        auto* controlMap = RE::ControlMap::GetSingleton();
-        if (!controlMap) return;
-        bool focus = prismaUI->HasFocus(view);
-        if (focus && m_textInputFocused) {
-            SetGamePaused(true);
-            controlMap->AllowTextInput(false);
-            KeyboardInputBlocker::SetBlocking(true);
-        } else if (!focus || !m_textInputFocused) {
-            SetGamePaused(false);
-            controlMap->AllowTextInput(false);
-            KeyboardInputBlocker::SetBlocking(false);
-        }
-    }
-
-    void PrismaUIManager::SetTextInputFocus(bool focused) {
-        if (focused) {
-            m_textInputFocused = true;
-            SKSE::log::debug("PrismaUIManager: text input focused — game hotkeys suppressed, game paused");
-        } else if (!focused && m_textInputFocused) {
-            m_textInputFocused = false;
-            SKSE::log::debug("PrismaUIManager: text input unfocused — game hotkeys restored, game unpaused");
-        }
-    }
-
-    void PrismaUIManager::OnSetTextInputFocus(const char* focused) {
-        bool block = focused && (std::string_view(focused) == "true");
-        SKSE::log::debug("OStim Navigator: setTextInputFocus → {}", block ? "focused" : "unfocused");
-        SKSE::GetTaskInterface()->AddTask([block]() {
-            auto& mgr = PrismaUIManager::GetSingleton();
-            mgr.SetTextInputFocus(block);
-            // Re-focus the view when a text input is activated — mirrors what the
-            // hotkey toggle does (explicit Focus call). Without this, the CEF view
-            // may not have keyboard focus and character keys will not reach the input.
-            // if (block && mgr.IsViewValid()) {
-            //     SKSE::log::info("PrismaUIManager: setTextInputFocus Unfocus(view={})", mgr.view);
-            //     mgr.prismaUI->Unfocus(mgr.view);
-            //     SKSE::log::info("PrismaUIManager: setTextInputFocus Focus(view={})", mgr.view);
-            //     mgr.prismaUI->Focus(mgr.view);
-            // }
-            mgr.CheckTextInputFocus();
-        });
-    }
-
     void PrismaUIManager::OnOStimThreadEvent(
         OstimNG_API::Thread::ThreadEvent eventType,
         uint32_t threadID,
         void* /*userData*/)
     {
-        // When the player thread (ID 0) finishes, hide and destroy the UI.
+        // When the player thread (ID 0) finishes, hide the persistent view.
         if (eventType == OstimNG_API::Thread::ThreadEvent::ThreadEnded && threadID == 0) {
             SKSE::GetTaskInterface()->AddTask([]() {
                 auto& mgr = PrismaUIManager::GetSingleton();
                 if (!mgr.IsViewValid()) return;
                 mgr.Hide();
-                mgr.Destroy();
-                SKSE::log::debug("PrismaUIManager: Player thread ended — Prisma UI hidden and destroyed.");
+                SKSE::log::debug("PrismaUIManager: Player thread ended — Magelight UI hidden.");
             });
             return;
         }
@@ -810,7 +1118,7 @@ namespace OStimNavigator {
         std::string id(sceneId);
         SKSE::log::debug("OStim Navigator: requestAutoDescription for '{}'", id);
 
-        SKSE::GetTaskInterface()->AddTask([id]() {
+        PostToGameThread([id]() {
             auto& mgr = PrismaUIManager::GetSingleton();
             if (!mgr.IsViewValid()) return;
 
@@ -829,7 +1137,7 @@ namespace OStimNavigator {
         std::string id(sceneId);
         SKSE::log::debug("OStim Navigator: requestCustomDescription for '{}'", id);
 
-        SKSE::GetTaskInterface()->AddTask([id]() {
+        PostToGameThread([id]() {
             auto& mgr = PrismaUIManager::GetSingleton();
             if (!mgr.IsViewValid()) return;
 
@@ -855,7 +1163,7 @@ namespace OStimNavigator {
         SKSE::log::debug("OStim Navigator: saveCustomDescription for '{}'", sceneId);
 
         // Gather cache info on the game thread, then do file I/O in background.
-        SKSE::GetTaskInterface()->AddTask([sceneId, description]() {
+        PostToGameThread([sceneId, description]() {
             OStimNetMetaData::GetSingleton().SaveDescriptionAsync(sceneId, description,
                 [](bool ok) {
                     auto& mgr = PrismaUIManager::GetSingleton();
@@ -884,7 +1192,7 @@ namespace OStimNavigator {
         std::string id(sceneId);
         SKSE::log::debug("OStim Navigator: requestSceneMeta for '{}'", id);
 
-        SKSE::GetTaskInterface()->AddTask([id]() {
+        PostToGameThread([id]() {
             auto& mgr = PrismaUIManager::GetSingleton();
             if (!mgr.IsViewValid()) return;
 
@@ -923,7 +1231,7 @@ namespace OStimNavigator {
         SKSE::log::debug("OStim Navigator: saveSceneMeta for '{}'", sceneId);
 
         // Gather cache info on the game thread, then do file I/O in background.
-        SKSE::GetTaskInterface()->AddTask([sceneId, meta]() {
+        PostToGameThread([sceneId, meta]() {
             OStimNetMetaData::GetSingleton().SaveSceneMetaAsync(sceneId, meta,
                 [](bool ok) {
                     auto& mgr = PrismaUIManager::GetSingleton();
@@ -941,7 +1249,7 @@ namespace OStimNavigator {
         SKSE::log::debug("OStim Navigator: requestSceneJson for '{}'", id);
 
         // Get the file path on the game thread (fast in-memory map lookup).
-        SKSE::GetTaskInterface()->AddTask([id]() {
+        PostToGameThread([id]() {
             auto& mgr = PrismaUIManager::GetSingleton();
             if (!mgr.IsViewValid()) return;
 

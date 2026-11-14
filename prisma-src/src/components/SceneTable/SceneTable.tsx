@@ -17,7 +17,6 @@ import { SceneRow } from '../../types'
 import { OStimPresetModal } from '../OStimPresetModal/OStimPresetModal'
 import { CurrentScenePanel } from '../CurrentScenePanel/CurrentScenePanel'
 import './SceneTable.css'
-import { notifyTextFocus } from '../../services/gameIntegration'
 
 // ─── Pill ─────────────────────────────────────────────────────────────────────
 
@@ -180,8 +179,6 @@ function MultiSelectFilter({
                             placeholder="Search…"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            onFocus={() => notifyTextFocus(true)}
-                            onBlur={() => notifyTextFocus(false)}
                             autoFocus
                         />
                     )}
@@ -459,8 +456,6 @@ export function SceneTable() {
                     placeholder="Search by ID or name…"
                     value={search}
                     onChange={e => { setSearch(e.target.value); setPage(0) }}
-                    onFocus={() => notifyTextFocus(true)}
-                    onBlur={() => notifyTextFocus(false)}
                 />
 
                 <button

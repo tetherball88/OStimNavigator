@@ -21,6 +21,9 @@ export interface StoreState {
     visible: boolean
     setVisible: (visible: boolean) => void
 
+    toggleNavigatorKey: number
+    setToggleNavigatorKey: (key: number) => void
+
     scenes: SceneRow[]
     setScenes: (scenes: SceneRow[]) => void
     setSceneHasCustomDescription: (sceneId: string, hasDescription: boolean) => void

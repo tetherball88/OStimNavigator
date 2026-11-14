@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigatorStore } from '../../../store/index'
-import { requestSceneMetaAsync, saveSceneMetaAsync, notifyTextFocus } from '../../../services/gameIntegration'
+import { requestSceneMetaAsync, saveSceneMetaAsync } from '../../../services/gameIntegration'
 
 import { DescriptionModal } from './DescriptionModal/DescriptionModal'
 import './DescriptionModal/DescriptionModal.css'
@@ -187,8 +187,8 @@ export function OStimNetMetaTags({ sceneId }: OStimNetMetaTagsProps) {
                         className="ostimnet-chip-input"
                         value={positionInput}
                         onChange={e => setPositionInput(e.target.value)}
-                        onFocus={() => { setShowSuggestions(true); notifyTextFocus(true) }}
-                        onBlur={() => { setShowSuggestions(false); notifyTextFocus(false); if (positionInput.trim()) addPosition(positionInput) }}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => { setShowSuggestions(false); if (positionInput.trim()) addPosition(positionInput) }}
                         onKeyDown={e => {
                             if (e.key === 'Enter' || e.key === ',') {
                                 e.preventDefault()

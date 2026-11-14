@@ -42,7 +42,9 @@ Here is the programmatically built description:
 {% if additionalInstructions != "" %}
 Additional instructions for description:
 {{additionalInstructions}}
-NEVER use additional instructions word for word they are hints and rules not ready to use description! They serve as additional context not as template or ready to use phrases.
+NEVER use additional instructions word for word they are hints and rules not ready to use description! They serve as additional context not as template or ready to use phrases. FUCKING DON'T USE FUCKING ADDITIONAL INSTRUCTIONS WORD FOR WORD!
+Get Programmatic description and additional isntructions and build new description regardless of order of things in description or additional isntructions.
+Don't sound like medical or robotic, make it more human readable and understandable.
 Make desription short!
 {% endif %}
 

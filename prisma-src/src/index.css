@@ -64,6 +64,11 @@ body {
     animation: drawerSlideIn 0.22s ease-out;
 }
 
+body.drawer-bounded .prism-panel {
+    width: 100%;
+    min-width: 0;
+}
+
 .prism-control-input,
 .prism-control-select,
 .prism-control-button {

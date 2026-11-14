@@ -32,7 +32,7 @@ export default defineConfig({
     }),
   ],
   build: {
-    outDir: resolve(__dirname, '../PrismaUI/views/OStimNavigator'),
+    outDir: resolve(__dirname, '../Magelight/OStimNavigator/views/OStimNavigator'),
     emptyOutDir: true,
     minify: false,
     cssCodeSplit: false,

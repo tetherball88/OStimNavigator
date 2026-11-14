@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import './services/monacoSetup'
 import App from './App'
 import './index.css'
 import { useNavigatorStore } from './store/index'

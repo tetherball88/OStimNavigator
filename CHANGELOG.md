@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.4.0
+
+### Changed
+
+- **Migrated from PrismaUI to Magelight UI** — OStim Navigator now runs on Magelight UI for smoother rendering, zero performance cost when hidden, and cleaner keyboard/mouse focus handling:
+  - **Seamless Focus Switching with OStim Prism** — When both OStim Navigator and **OStim Prism** are open, you can click directly between the two panels to switch keyboard focus back and forth without closing either overlay.
+  - **Offline JSON Editor** — Bundled local editor assets so the in-game Scene JSON editor works reliably without external network access.
+- **SkyrimNet External Package Manifest** — Added `manifest.json` metadata for the bundled SkyrimNet prompt integration.
+
+---
+
 ## v2.3.0
 
 ### Added
